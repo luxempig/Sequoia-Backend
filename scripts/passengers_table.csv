@@ -1,0 +1,435 @@
+passenger id,name,bio_path,basic_info
+1,Richard M. Cadwalader,,
+2,Emily Cadwalader ,,Née Roebling
+3,Mrs. William Glasgow,,
+4,Margaret Wright,,
+5,Herbert Hoover,https://en.wikipedia.org/wiki/Herbert_Hoover,POTUS
+6,Lou Hoover,https://en.wikipedia.org/wiki/Lou_Henry_Hoover,FLOTUS
+7,Dr. Vernon Kellogg,https://en.wikipedia.org/wiki/Vernon_Lyman_Kellogg,Zoologist
+8,Charlotte Kellogg,https://en.wikipedia.org/wiki/Charlotte_Kellogg,Née Hoffman
+9,Dr. Robert A. Millikan,https://en.wikipedia.org/wiki/Robert_Andrews_Millikan,Physicist
+10,Captain Russell Train,https://www.history.navy.mil/our-collections/photography/numerical-list-of-images/nhhc-series/nh-series/NH-00001/NH-844.html,Naval Aid
+11,Colonel Campbell B. Hodges,http://www.i-kirk.info/14thInfantry/generals/1gnHodges.html,Military Aid
+12,Captain Joel T. Boone,https://en.wikipedia.org/wiki/Joel_Thompson_Boone,White House Physician
+13,Richard Jervis,https://www.nytimes.com/1935/03/03/archives/white-house-shift-in-secret-service-chief-jervis-transferred-at-own.html,White House Secret Service Chief
+14,Harlan F. Stone ,https://en.wikipedia.org/wiki/Harlan_F._Stone,Supreme Court Justice
+15,Agnes Stone,,Née Harvey
+16,Senator Warren Austin,https://en.wikipedia.org/wiki/Warren_Austin,R-VT
+17,Mildred Austin,,Née Lucas
+18,Mark Sullivan,https://en.wikipedia.org/wiki/Mark_Sullivan_(journalist),Journalist
+19,Lawrence Richey,,Secretary to the President
+20,Captain William Coad,,Captain of Sequoia
+21,Franklin Delano Roosevelt,https://en.wikipedia.org/wiki/Franklin_D._Roosevelt,POTUS
+22,Eleanor Roosevelt,https://en.wikipedia.org/wiki/Eleanor_Roosevelt,FLOTUS
+23,Ramsay MacDonald,https://en.wikipedia.org/wiki/Ramsay_MacDonald,UK Prime Minister
+24,Ishbesl MacDonald,https://en.wikipedia.org/wiki/Ishbel_MacDonald,Ramsay MacDonald's Daughter 
+25,Sir Robert Vansittart,https://bit.ly/3qDRc9i,Permanent Under-Secretary at the Foreign Office
+26,Sarita Enriqueta Vansittart,,Née Ward
+27,Alan Barlow,https://en.wikipedia.org/wiki/Alan_Barlow,Principal Private Secretary to PM MacDonald
+28,Mr. Rowlston,,
+29,Louis M. Howe,https://en.wikipedia.org/wiki/Louis_Howe,Secretary to the President
+30,James Roosevelt,https://en.wikipedia.org/wiki/James_Roosevelt,FDR's Son
+31,Captain Walter N. Vernou,https://en.wikipedia.org/wiki/Walter_N._Vernou,Naval Aide
+32,R.C. Wood,,Secret Service
+33,August Adolph Gennerich,https://en.wikipedia.org/wiki/August_Adolph_Gennerich,Secret Service
+34,Henry A. Wallace,https://en.wikipedia.org/wiki/Henry_A._Wallace,Secretary of Agriculture 
+35,Ilo Wallace,https://en.wikipedia.org/wiki/Ilo_Wallace,Née Browne
+36,David Gray,https://en.wikipedia.org/wiki/David_Gray_(diplomat),Diplomat
+37,Maude L. Gray,,Née Hall; aunt of Eleanor Roosevelt
+38,Marguerite Alice ''Missy'' LeHand,https://en.wikipedia.org/wiki/Marguerite_LeHand,Private Secretary to FDR
+39,Senator George L. P. Radcliffe,https://en.wikipedia.org/wiki/George_L._P._Radcliffe,D-MD
+40,Harry S. Truman,https://en.wikipedia.org/wiki/Harry_S._Truman,POTUS
+41,Dwight D. Eisenhower,https://en.wikipedia.org/wiki/Dwight_D._Eisenhower,Chief of Staff of the Army
+42,Chester W. Nimitz ,https://en.wikipedia.org/wiki/Chester_W._Nimitz,Chief of Naval Operations 
+43,Robert Porter Patterson Sr. ,https://en.wikipedia.org/wiki/Robert_P._Patterson,Secretary of War
+44,James Forrestal,https://en.wikipedia.org/wiki/James_Forrestal,Secretary of the Navy
+45,Kenneth C. Royall,https://en.wikipedia.org/wiki/Kenneth_Claiborne_Royall,Secretary of the Army
+46,John L. Sullivan,https://en.wikipedia.org/wiki/John_L._Sullivan_(United_States_Navy),Under Secretary of the Navy
+47,Richard R. Dupree,https://en.wikipedia.org/wiki/Richard_Redwood_Deupree,CEO of Procter & Gamble
+48,John F. Kennedy,https://en.wikipedia.org/wiki/John_F._Kennedy,POTUS
+49,Jacqueline Kennedy Onassis,https://en.wikipedia.org/wiki/Jacqueline_Kennedy_Onassis,FLOTUS; Née Bouvier
+50,Robert F. Kennedy,https://en.wikipedia.org/wiki/Robert_F._Kennedy,US Attorney General
+51,Ethel S. Kennedy,https://en.wikipedia.org/wiki/Ethel_Kennedy,Née Skakel
+52,Paul B. Fay,https://en.wikipedia.org/wiki/Paul_B._Fay,Under Secretary of the Navy
+53,Anita Fay ,,
+54,Paul B. Fay Sr. ,,
+55,Katherine Oliver Fay,,
+56,Rowland Evans Jr. ,https://en.wikipedia.org/wiki/Rowland_Evans,Journalist
+57,Katherine Winton Evans,,Journalist
+58,John C. Bullitt,https://www.nytimes.com/1988/05/15/obituaries/john-c-bullitt-62-an-ex-treasury-official.html,Assistant Secretary of the Treasury 
+59,Lelia Wardwell Bullitt,https://www.nytimes.com/1996/03/17/style/weddings-lelia-wardwell-edmund-mander.html,
+60,Charles F. Spalding,https://en.wikipedia.org/wiki/Charles_F._Spalding,Broadway Producer
+61,Clark Wallace Thompson,,
+62,Lyndon B. Johnson,https://en.wikipedia.org/wiki/Lyndon_B._Johnson,POTUS
+63,Thomas C. Mann,https://en.wikipedia.org/wiki/Thomas_C._Mann,Undersecretary of State for Economic Affairs
+64,John M. Leddy,https://en.wikipedia.org/wiki/John_M._Leddy,Asstistant Secretary of State
+65,Jack Vaughn,https://en.wikipedia.org/wiki/Jack_Vaughn,Asstistant Secretary of State
+66,Leonard Marks,https://en.wikipedia.org/wiki/Leonard_Marks,Director of USIA
+67,Loyd N. Hand,https://en.wikipedia.org/wiki/Lloyd_Nelson_Hand,Ambassador to Spain
+68,Jack Valenti,https://en.wikipedia.org/wiki/Jack_Valenti,Political Advisor
+69,Sir Neville Noel Ashenheim,https://en.wikipedia.org/wiki/Neville_Ashenheim,Jamaican Ambassador to US
+70,Ricardo E. Arias,https://en.wikipedia.org/wiki/Ricardo_Arias_(politician),Panamanian Ambassador to US
+71,Sir Patrick Dean,https://en.wikipedia.org/wiki/Patrick_Dean_(diplomat),British Ambassador to US
+72,Alfonso Merry del Val y Alzola,,Spanish Ambassador to US
+73,Gonzalo J. Facio Segreda,https://en.wikipedia.org/wiki/Gonzalo_Facio_Segreda,Costa Rican Ambassador to US
+74,Sergio Fenoaltea,https://www.nytimes.com/1995/04/26/obituaries/sergio-fenoaltea-italian-diplomat-86.html,Italian Ambassador to US
+75,Dr. Carlos Garcia-Bauer,,Guatamalan Ambassador to US
+76,Vasco Vieria Garin,https://en.wikipedia.org/wiki/Vasco_Vieira_Garin,Portuguese Ambassador to US
+77,Hyun Chul Kim,https://en.wikipedia.org/wiki/Kim_Hyun-chul_(politician),South Korean Ambassador to US
+78,Karl Heinrich Knappstein,https://en.wikipedia.org/wiki/Karl_Heinrich_Knappstein,German Ambassador to US
+79,George R. Laking,https://en.wikipedia.org/wiki/George_Laking,New Zealand Ambassador to US
+80,Gustavo Larrea,,Ecuadorian Ambassador to US
+81,Dato Ong Yoke Lin,https://en.wikipedia.org/wiki/Ong_Yoke_Lin,Malaysian Ambassador to US
+82,Juracy M. Magalhães,https://pt.wikipedia.org/wiki/Juracy_Magalh%C3%A3es,Brazilian Ambassador to US
+83,Huga B. Margáin,https://en.wikipedia.org/wiki/Hugo_B._Marg%C3%A1in,Mexican Ambassador to US
+84,Olavi Munkki,https://en.wikipedia.org/wiki/Olavi_Munkki,Finnish Ambassador to US
+85,Sukich Nimmanheminda,https://en.wikipedia.org/wiki/Sukich_Nimmanheminda,Thai Ambassador to US
+86,Dr. Juan Plate,,Paraguyan Ambassador to US
+87,Charles S. A. Ritchie,https://en.wikipedia.org/wiki/Charles_Ritchie_(diplomat),Canadian Ambassador to US
+88,Julio Sanjines-Goitia,,Bolivian Ambassador to US
+89,Guillermo Sevilla Sacasa,https://en.wikipedia.org/wiki/Guillermo_Sevilla_Sacasa,Nicuraguan Ambassador to US
+90,U Ohn Sein,,Burmese Ambassador to US
+91,Chow Shu Kai,https://www.upi.com/News_Photos/view/upi/d242c7863f4124e8e1e3efde171c469c/Chow-Shu-Kai-from-Taiwan-pays-visit-to-Spiro-Agnew/,Chinese Ambassador to US
+92,Ricardo Midence Soto,,Honduran Ambassador to US
+93,Ryuji Takeuchi,,Japanese Ambassador to US
+94,Andre Therd,,Haitian Ambassador to US
+95,Radomiro Tomic,https://en.wikipedia.org/wiki/Radomiro_Tomic,Chilean Ambassador to US
+96,Dr. Eduardo Uribe,,Colombian Ambassador to US
+97,John Keith Waller,https://en.wikipedia.org/wiki/Keith_Waller,Austrailian Ambassador to US
+98,Juan Felipe Yriart,https://de.wikipedia.org/wiki/Juan_Felipe_Yriart,Uruguyan Ambassador to US
+99,Dr. Norbert Barrenechea,,Argentinean Ambassador to US
+100,Claudia Alta Johnson,https://en.wikipedia.org/wiki/Lady_Bird_Johnson,FLOTUS; Née Taylor
+101,Senator Alan Bible,https://en.wikipedia.org/wiki/Alan_Bible,D-NV
+102,John Gonella,,
+103,Ashton Gonella,,
+104,Willard Deason,https://www.discoverlbj.org/item/deasonw,Commissioner for the Interstate Commerce Commission
+105,Mrs. Deason,,
+106,John Macy,https://en.wikipedia.org/wiki/John_Macy,"Chairman, Civil Service Comm"
+107,Senator Gale W. McGee,https://en.wikipedia.org/wiki/Gale_W._McGee,D-WY
+108,Loraine Baker McGee,,
+109,Rep. Jim Wright,https://en.wikipedia.org/wiki/Jim_Wright,D-TX
+110,Mary Ethelyn Lemons Wright,,
+111,Leslie Carpenter ,,
+112,Mary Elizabeth Carpenter,https://en.wikipedia.org/wiki/Liz_Carpenter,Press Secretary to LBJ
+113,Robert Max Brooks,https://www.discoverlbj.org/item/brooksrm,Architect
+114,Aubrey Boozer Jr. ,https://www.legacy.com/us/obituaries/washingtonpost/name/aubrey-boozer-obituary?id=5495166,Office of Economic Opportunity 
+115,Mrs. Boozer,,
+116,Juanita Roberts,https://www.discoverlbj.org/item/robertsj,Chief Personal Secretary to LBJ
+117,Emmet Riordan,,Official in Executive Office of the President
+118,Mariane Riordan,https://en.wikipedia.org/wiki/Marianne_Means,Journalist; Née Hanson
+119,Richard M. Nixon,https://en.wikipedia.org/wiki/Richard_Nixon,POTUS
+120,Charles Gregory Rebozo,https://en.wikipedia.org/wiki/Bebe_Rebozo,Close friend of Nixon's
+121,Robert H. Finch,https://en.wikipedia.org/wiki/Robert_Finch_(American_politician),"Secretary of Health, Education, and Welfare
+"
+122,Patricia Nixon,https://en.wikipedia.org/wiki/Pat_Nixon,FLOTUS
+123,Tricia Nixon Cox,https://en.wikipedia.org/wiki/Tricia_Nixon_Cox,First Family
+124,David Eisenhower,https://en.wikipedia.org/wiki/David_Eisenhower,
+125,Julie Nixon Eisenhower,https://en.wikipedia.org/wiki/Julie_Nixon_Eisenhower,First Family 
+126,Rose Mary Woods,https://en.wikipedia.org/wiki/Rose_Mary_Woods,Personal Secretary to Nixon
+127,Gerald R. Ford,https://en.wikipedia.org/wiki/Gerald_Ford,VP; POTUS
+128,Susan Ford,https://en.wikipedia.org/wiki/Susan_Ford,First Family 
+129,L. William Seidman,https://en.wikipedia.org/wiki/L._William_Seidman,Economic Affairs Assistant
+130,Brent Scowcroft,https://en.wikipedia.org/wiki/Brent_Scowcroft,National Security Assistant 
+131,Frank G. Zarb,https://en.wikipedia.org/wiki/Frank_Zarb,Administrator of the Federal Energy Administration
+132,Alan Greenspan,https://en.wikipedia.org/wiki/Alan_Greenspan,Chairman of the Council of Economic Advisors 
+133,James R. Schlesinger,https://en.wikipedia.org/wiki/James_R._Schlesinger,Secretary of Defense 
+134,Edward H. Levi,https://en.wikipedia.org/wiki/Edward_H._Levi,Attorney General
+135,Earl L. Butz,https://en.wikipedia.org/wiki/Earl_Butz,Secretary of Agriculture
+136,John T. Dunlop,https://en.wikipedia.org/wiki/John_Thomas_Dunlop,Secretary of Labor
+137,Carla A. Hills,https://en.wikipedia.org/wiki/Carla_Anderson_Hills,Secretary of Housing and Urban Development
+138,William T. Coleman,https://en.wikipedia.org/wiki/William_Thaddeus_Coleman_Jr.,Secretary of Transportation
+139,Stephen S. Gardner,https://en.wikipedia.org/wiki/Stephen_Gardner,
+140,John K. Tabor,https://www.washingtonpost.com/archive/local/1999/09/08/lawyer-john-k-tabor-dies-at-age-78/277a7ea4-57dd-46f2-a0dc-346d84cea04b/,
+141,D. Kent Frizzell,https://en.wikipedia.org/wiki/Kent_Frizzell,Secretary of the Interior
+142,Stephen Kurzman,https://www.chesapeakelegal.org/team/stephen-kurzman/,
+143,Philip W. Buchen,https://en.wikipedia.org/wiki/Philip_W._Buchen,WH Counsel 
+144,Frederick B. Dent,https://en.wikipedia.org/wiki/Frederick_B._Dent,
+145,Robert T. Hartmann,https://en.wikipedia.org/wiki/Robert_T._Hartmann,Counselor to the President
+146,James T. Lynn,https://en.wikipedia.org/wiki/James_Thomas_Lynn,
+147,John O. Marsh,https://en.wikipedia.org/wiki/John_Otho_Marsh_Jr.,Counselor to the President
+148,Donald H. Rumsfeld,https://en.wikipedia.org/wiki/Donald_Rumsfeld,
+149,John A. Scali,https://en.wikipedia.org/wiki/John_A._Scali,Ambassador to the UN
+150,William J. Baroody,https://en.wikipedia.org/wiki/William_J._Baroody_Jr.,Director of the Office of Public Liason
+151,James M. Connon III,https://www.washingtonpost.com/local/obituaries/james-m-cannon-iii-former-newsweek-editor-and-ford-adviser-dies-at-93/2011/09/17/gIQAWsAgaK_story.html,
+152,Richard B. Cheney,https://en.wikipedia.org/wiki/Dick_Cheney,
+153,James E. Connor,https://www.fordlibrarymuseum.gov/library/guides/findingaid/connorjfiles.asp,
+154,Max L. Friedersdorf,https://www.legacy.com/obituaries/indystar/obituary.aspx?n=max-l-friedersdorf&pid=196283530,
+155,Ronald H. Nessen,https://www.c-span.org/person/?ronnessen,
+156,Roderick M. Hills,https://en.wikipedia.org/wiki/Roderick_M._Hills,Chairman of the SEC
+157,William I. Greener,https://www.washingtonpost.com/local/obituaries/william-i-greener-jr-public-affairs-officer/2013/01/22/395d63f8-64ba-11e2-b84d-21c7b65985ee_story.html,
+158,Mary Louise Smith,https://en.wikipedia.org/wiki/Mary_Louise_Smith_(politician),Chair of the RNC
+159,Russell E. Train,https://en.wikipedia.org/wiki/Russell_E._Train,2nd Administrator of the EPA
+160,Rear Admiral William Lukash,https://www.washingtonpost.com/archive/local/1998/02/07/william-lukash-dies-at-66/0aa71fb2-d95c-4612-91a4-d88eccf9b9ac/,
+161,David H. Kennerly,https://en.wikipedia.org/wiki/David_Hume_Kennerly,Chief WH Photographer
+162,Terrance O'Donnell,https://www.wc.com/Attorneys/Terrence-O-Donnell,
+163,Robert P. Lamont,https://en.wikipedia.org/wiki/Robert_P._Lamont,Secretary of Commerce
+164,Pierre Laval,https://en.wikipedia.org/wiki/Pierre_Laval,French Prime Minister
+165,Paul Claudel,https://en.wikipedia.org/wiki/Paul_Claudel,French Ambassador
+166,Josée Laval,https://en.wikipedia.org/wiki/Jos%C3%A9e_Laval,Daughter of Pierre Laval
+167,Clarence Mott Wooley,https://uudb.org/articles/clarencemottwoolley.html,President of American Radiator Company
+168,Arthur M. Hyde,https://en.wikipedia.org/wiki/Arthur_M._Hyde,Secretary of Agriculture
+169,Patrick J. Hurley,https://en.wikipedia.org/wiki/Patrick_J._Hurley,Secretary of War
+170,Henry Mauris Robinson,https://snaccooperative.org/ark:/99166/w6794wjj,LA Banker and member of the Dawes Commission
+171,Walter Ewing Hope,https://www.presidency.ucsb.edu/documents/statement-about-the-resignation-walter-e-hope-assistant-secretary-the-treasury,Former Assistant Secretary of the Treasury 
+172,Will Irwin,https://en.wikipedia.org/wiki/Will_Irwin,Author and Hoover's Stanford friend
+173,Walter H. Newton,https://en.wikipedia.org/wiki/Walter_Newton,Personal Secretary to President Hoover
+174,Henry L. Roosevelt,https://en.wikipedia.org/wiki/Henry_L._Roosevelt,Assistant Secretary of the Navy
+175,Betsey Roosevelt,https://en.wikipedia.org/wiki/Betsey_Cushing_Roosevelt_Whitney,"Née Cushing, and later Whitney"
+176,Nancy Cook,https://en.wikipedia.org/wiki/Nancy_Cook,Secretary to Eleanor Roosevelt
+177,Mrs. Schroeder,,Secretary to Eleanor Roosevelt
+178,Miss Robins,,
+179,Marion Dickerman,https://en.wikipedia.org/wiki/Marion_Dickerman,Principal of The Todhunter School; Suffragist
+180,Molly Goodwin,,Physical Education Teacher at Todhunter
+181,Jane Holmes,,Todhunter School student
+182,Adelaide Moffett,,Todhunter School student
+183,Peggy Ladds,,Todhunter School student
+184,Inez Alexander,,Todhunter School student
+185,Betty Cook,,Todhunter School student
+186,Joan Strahan,,Todhunter School student
+187,Jean Gibbs,,Todhunter School student
+188,G. Dresser,,Secret Service
+189,Mrs. Mortimer,,
+190,Misses Marya,,
+191,Cippoli,,
+192,Mary Holmes,,
+193,Stephen T. Early,https://en.wikipedia.org/wiki/Stephen_Early,WH Press Secretary
+194,Helen Early,,Née Wrenn
+195,Mr. B. McFadden,,
+196,Mr. Colon,,Secret Service
+197,Eleanor Roosevelt,,Née Morrow; Married to Henry Roosevelt
+198,Lewis Williams Douglas,https://en.wikipedia.org/wiki/Lewis_Williams_Douglas,Director of Budget
+199,Peggy Douglas,,Née Zinsser
+200,William H. Woodin,https://en.wikipedia.org/wiki/William_H._Woodin,Secretary of Treasury
+201,Annie Woodin,,Née Jessup
+202,Rear Adm. Cary T. Grayson,https://en.wikipedia.org/wiki/Cary_T._Grayson,Chairman of the American Red Cross; Former Surgeon of Presidential Yacht Mayflower
+203,Alice Gertrude Grayson,,Née Gordon
+204,James A. Hollinger,https://www.odmp.org/officer/6635-operative-james-a-hollinger,Secret Service
+205,John Sargent,,Business Partners with James Roosevelt 
+206,Katherine Sargent,,
+207,Senator Joseph T. Robinson,https://en.wikipedia.org/wiki/Joseph_Taylor_Robinson,D-AR; Senate Majority Leader 
+208,Ewilda Grady Robinson,,Née Miller
+209,Jonas Lie,https://en.wikipedia.org/wiki/Jonas_Lie_(painter),Painter
+210,Sonja Lie,,Jonas Lie's daughter
+211,Paula Tully,,Grace Tully's sister- also worked at WH
+212,Roland Clark,,Secret Service
+213,Grace G. Tully,https://en.wikipedia.org/wiki/Grace_Tully,Assistant to Marguerite LeHand
+214,Hartley Howe,https://wpthistory.org/2014/07/hartley-howe/,Son of Louis Howe
+215,Helen Early,,Daughter of Stephen Early
+216,Stephen T. Early Jr. ,,Son of Stephen Early
+217,Robert H. Baker,https://baas.aas.org/pub/2021i0325/release/1,
+218,Mary Baker,,Née Howe; daughter of Louis Howe
+219,David C. Stewart Jr. ,,
+220,William Morrow Roosevelt,https://www.findagrave.com/memorial/127340000/william-morrow-roosevelt,Son of Henry Roosevelt 
+221,Gwendolyn Roosevelt,,Née Harrison
+222,Sallie Gardner,,
+223,John Wilkins,,
+224,Aaron S. Merrill,https://en.wikipedia.org/wiki/Aaron_S._Merrill,Aide to Asst. Sec. Roosevelt
+225,Louise Gautier Merrill,https://chroniclingamerica.loc.gov/lccn/sn83045774/1922-01-28/ed-1/seq-11/ocr.txt,Née Witherbee
+226,Name Logged Incorectly; Member of Roosevelt Family,,
+227,Claude A. Swanson,https://en.wikipedia.org/wiki/Claude_A._Swanson,Secretary of the Navy
+228,Lulie Lyons Swanson,http://www.historichampshire.org/swanson/lulie.htm,Née Hall
+229,Admiral Mark L. Bristol,https://en.wikipedia.org/wiki/Mark_Lambert_Bristol,USN
+230,Mrs. Bristol,,
+231,Mr. M. L. Oden,,
+232,Mrs. M. L. Oden,,
+233,Mr. G. Hall ,,
+234,Passenger Name Not Recorded,,
+235,Passenger Name Not Recorded,,
+236,Passenger Name Not Recorded,,
+237,Passenger Name Not Recorded,,
+238,Passenger Name Not Recorded,,
+239,Passenger Name Not Recorded,,
+240,Passenger Name Not Recorded,,
+241,Passenger Name Not Recorded,,
+242,Douglas Hall,https://historichampshire.org/swanson/lulie.htm,Sec. Swanson's Step-Son
+243,Joseph D. Wood,https://en.wikipedia.org/wiki/Joseph_D._Wood,Norfolk Virginia City Councilmen
+244,Ada Burnell Wood,,
+245,Miss Lindsey,,
+246,Mr. Bob Walker,,
+247,Passenger Name Logged Incorectly ,,
+248,Homer Stille Cummings,https://en.wikipedia.org/wiki/Homer_Stille_Cummings,Attorney General
+249,Mary Cecilia Cummings,,Née Waterbury
+250,Mr. Grady,,
+251,Mr. Towslee,,Secret Service
+252,Rexford Tugwell,https://en.wikipedia.org/wiki/Rexford_Tugwell,Assistant Secretary of Agriculture
+253,Harold L. Ickes,https://en.wikipedia.org/wiki/Harold_L._Ickes,Secretary of the Intorior
+254,General Hugh S. Johnson,https://en.wikipedia.org/wiki/Hugh_S._Johnson,Head of the National Recovery Administration
+255,Prince Ras Desta Damtew,https://en.wikipedia.org/wiki/Desta_Damtew,Special Ambassador of the Emperor of Ethiopia
+256,Rear Admiral Henry V. Butler,http://www.arlingtoncemetery.net/hvburler.htm,
+257,Alla Paulos Mancmanos,,Equeury to Prince Damtew
+258,Jefforson Patterson,https://en.wikipedia.org/wiki/Jefferson_Patterson,State Department Official
+259,Mr Kinsey,,State Department Official
+260,Major H. Duncan Brown,,Aide de camp to Prince Damtew
+261,Warren Delano Robbins,https://en.wikipedia.org/wiki/Warren_Delano_Robbins,US Minister to Canada
+262,Irene Robbins,https://www.nytimes.com/1910/08/23/archives/takes-bride-in-buenos-ayres-warren-delano-robbins-to-wed-miss-irene.html,Née de Bruyn
+263,Harry L. Hopkins,https://en.wikipedia.org/wiki/Harry_Hopkins,Administrator of the Federal Emergency Relief Administration
+264,Barbara Hopkins,,Née Duncan
+265,Miss Donelly,,
+266,Marshall Rawle,https://www.thecrimson.com/article/1928/3/29/crew-squad-gets-first-big-shift/,Harvard friend of James Roosevelt
+267,Judge Samuel Rosenman,https://en.wikipedia.org/wiki/Samuel_Rosenman,
+268,Dorothy Rosenman,https://en.wikipedia.org/wiki/Dorothy_Rosenman,
+269,Lewis Douglass's Two Children,,
+271,Harry Gruger,,
+272,Anna Roosevelt Dall,https://en.wikipedia.org/wiki/Anna_Roosevelt_Halsted,Daughter of Franklin and Eleanor Roosevelt
+273,Anna Eleanor Roosevelt Seagraves ,https://en.wikipedia.org/wiki/Eleanor_Roosevelt_Seagraves,Grandaughter of FDR; Daughter of Anna Roosevelt Dall 
+274,Curtis Roosevelt Dall,https://en.wikipedia.org/wiki/Curtis_Roosevelt,Grandson of FDR; Son of Anna Roosevelt Dall
+275,Isabella S. Greenway,https://en.wikipedia.org/wiki/Isabella_Greenway,
+276,Eugene R. Black,https://en.wikipedia.org/wiki/Eugene_Robert_Black,Governor of the Federal Reserve Bank of Atlanta
+277,Gussie Black,,Née Grady
+278,Lorena Alice Hickock,https://en.wikipedia.org/wiki/Lorena_Hickok,Chief Investigator for the Federal Emergency Relief Administration
+279,Jane Dixon,,
+280,Besse Williams,,Nurse
+281,Henry Morgenthau Jr. ,https://en.wikipedia.org/wiki/Henry_Morgenthau_Jr.,Secretary of the Treasury
+282,Kirk Simpson ,,United Press International Reporter
+283,Tom Connally,https://en.wikipedia.org/wiki/Tom_Connally,
+284,Marvin H. McIntyre,https://en.wikipedia.org/wiki/Marvin_H._McIntyre,
+285,Dr. Harvey Cushing,https://en.wikipedia.org/wiki/Harvey_Cushing,
+286,Katherine Stone Cushing,,Née Crowel
+287,Mary Benedict Cushing,https://en.wikipedia.org/wiki/Mary_Benedict_Cushing,
+288,Prince Kaya Tsunenori ,https://en.wikipedia.org/wiki/Prince_Kaya_Tsunenori,Japanese Prince
+289,Kujō Toshiko Tsunenori,,Japanese Princess
+290,Japanese Imperial Party,,
+291,Walter C. Teagle,https://en.wikipedia.org/wiki/Walter_C._Teagle,President of Standard Oil of New Jersey
+292,James A. Moffett,,Vice President of Standard Oil of New Jersey
+293,Sir John Cadman,https://bit.ly/3OWXAC2,Chairman of Anglo Persian Oil Company
+294,Basil R. Jackson,https://en.wikipedia.org/wiki/Basil_Jackson,Anglo Persian Oil Company Representative in U.S.A.
+295,William M. Fraser,https://bit.ly/3QDFfLD,Managing Director of Anglo Persian Oil Company
+296,Robert I. Waston,,"Managing Director, Burmah Oil Company; Director: Anglo Persian Oil & Shell Trading Company"
+297,Raymond Moley,https://en.wikipedia.org/wiki/Raymond_Moley,Columbia Law Professor
+298,Donald Richberg,https://en.wikipedia.org/wiki/Donald_Richberg,General Counsel & Executive Director: National Recovery Administration
+299,"Col. Edwin ""Pa"" Watson",https://en.wikipedia.org/wiki/Edwin_%22Pa%22_Watson,Senior Military Aide
+300,Francis Watson,,Née Nash
+301,"Henry ""harry"" Hooker",https://nyti.ms/3A4OZ6a,Former Army Major; Former Law Partner of FDR
+302,Captain Wilson Brown,https://en.wikipedia.org/wiki/Wilson_Brown_(admiral),Naval Aide; Former Captain of the Presidential Yacht Mayflower
+303,George Harrison,https://en.wikipedia.org/wiki/George_L._Harrison,President of the Federal Reserve Bank of New York
+304,Joseph P. Kennedy Sr. ,https://en.wikipedia.org/wiki/Joseph_P._Kennedy_Sr.,Chair of the Securities and Exchange Commission
+305,Edward Moore,,Assistant to Joseph Kennedy Sr. 
+306,Margaret Suckley,https://en.wikipedia.org/wiki/Margaret_Suckley,Close Friend of FDR
+307,Virginia Livingston Hunt,,Distant Cousin of Eleanor Roosevelt
+308,Paul Hart,,Secret Service
+309,Edward J. Flynn,https://en.wikipedia.org/wiki/Edward_J._Flynn,Secretary of State of New York
+310,Helen Margaret Flynn,,Née Jones
+311,George A. Fox,,"US Navy Medic, Chief Pharmacist "
+312,Rear Admiral Richard E. Byrd,https://en.wikipedia.org/wiki/Richard_E._Byrd,
+313,Dr. Ross T. McIntire ,https://en.wikipedia.org/wiki/Ross_T._McIntire,Physician to the President
+314,June Hamilton Rhodes,,Women's Outreach Coordinator at DNC
+315,Anna Roosevelt Boettiger,https://en.wikipedia.org/wiki/Anna_Roosevelt_Halsted,Daughter of FDR and Eleanor Roosevelt
+316,Clarence John Boettiger,https://en.wikipedia.org/wiki/Clarence_John_Boettiger,
+317,Ethel Dupont,https://en.wikipedia.org/wiki/Ethel_du_Pont,
+318,Malvina Thompson,https://en.wikipedia.org/wiki/Malvina_Thompson#Personal_life,Private Secretary to Eleanor Roosevelt
+319,Grace Howe,,Née Hartley
+320,Florence Tugwell,,Née Arnold
+321,Lydia Brown,,Née Ballou; Wife of Wilson Brown
+322,Elizabeth Donner Roosevelt,,Ex-Wife of Elliiot Roosevelt
+323,Rep. Isabella Greenway,https://en.wikipedia.org/wiki/Isabella_Greenway,D-AZ
+324,Jack Greenway,,Son of Isabella Greenway
+325,Joan Morgenthau,,Henry Morgenthau Jr.’s Daughter
+326,Henry Osthagen,,
+327,Delia Heming,,
+328,Eddie Peabody,https://en.wikipedia.org/wiki/Eddie_Peabody,
+329,Maude Peabody,,Née Kelly
+330,Bessie Williams,,
+331,Robert Brownwell,,
+332,Hampton Robb,,
+333,Jack L. Warner,https://en.wikipedia.org/wiki/Jack_L._Warner,
+334,Pauline McIntire,,Née Palmer
+335,Charles West,,White House Congressional Liaison 
+336,Senator Hiram W. Johnson,https://en.wikipedia.org/wiki/Hiram_Johnson,R-CA
+337,Minne L. Johnson,,Née McNeal
+338,R. Walton Moore,https://en.wikipedia.org/wiki/R._Walton_Moore,Assistant Secretary of State
+339,"Barbara Jane ""Babe""",,"Niece of Marguerite A. ""Missy"" LeHand"
+340,Margaret Frances Farwell,,"Niece of Marguerite A. ""Missy"" LeHand"
+341,John Nance Garner,https://en.wikipedia.org/wiki/John_Nance_Garner,VP
+342,James A. Farley,https://en.wikipedia.org/wiki/James_Farley,Postmaster General
+343,Senator Key Pittman,https://en.wikipedia.org/wiki/Key_Pittman,D-NV; Chairman of the Senate Foreign Relations Committee
+344,"Senator Joseph Welliington ""Jo"" Byrns Sr.",https://en.wikipedia.org/wiki/Jo_Byrns,D-TN; Speaker of the House
+345,Senator Alben Barkley,https://en.wikipedia.org/wiki/Alben_W._Barkley,D-KY
+346,Rep. Sam Rayburn,https://en.wikipedia.org/wiki/Sam_Rayburn,D-TX; Chairman of the Commerce Committee
+347,Franklin D. Roosevelt Jr. ,https://en.wikipedia.org/wiki/Franklin_Delano_Roosevelt_Jr.,
+348,John R. McCarl ,https://en.wikipedia.org/wiki/John_R._McCarl,Comptroller General
+349,Ethel B. McCarl,,Née Barnett
+350,Senator Burton K. Wheeler,https://en.wikipedia.org/wiki/Burton_K._Wheeler,D-MT
+351,Lulu Wheeler,,Née White
+352,Colonel J. Monroe Johnson,,Assistant Secretary of Commerce
+353,Helen Johnson,,Née Barnwell
+354,Senator James F. Byrnes,https://en.wikipedia.org/wiki/James_F._Byrnes,D-SC
+355,Maude Byrnes,https://nyti.ms/3szypH4,Née Busch
+356,John A. Roosevelt,https://en.wikipedia.org/wiki/John_Aspinwall_Roosevelt,Youngest Child of Franklin and Eleanor Roosevelt
+357,Dr. Guillermo Patterson,https://nyti.ms/3OMw1eC,Ambassador of Cuba
+358,Guillermo Patterson's Two Daughters,,
+359,Jose Manuel Casanova,,President of the Social and Economic Union of Cuba
+360,Antonio Anton,,
+361,Rafael Maria Angulo,,
+362,Jose F. Barraque,,
+363,German Beci,,
+364,Alfredo O. Ceberio,,
+365,Mr. Conde del Rivero,,
+366,Mrs. Conde del Rivero,,
+367,Georgina Mendez DeVigo,,
+368,Edelberto Farres,,
+369,Angel Garri,,
+370,Guillermo Perez Lavielle,,
+371,Agustin Lazo,,
+372,Arterra M. Manas,,
+373,Hugo Mamelis,,
+374,Ceferino Martinez,,
+375,Julio Mederos,,
+376,Benigno Rodriguez Sanchez,,
+377,E.W. Reed,,
+378,J.C. Holmes,,
+379,J.H. Lord,,
+380,Paul Daniels,,
+381,J. Flexer,,
+382,H. Trueblood,,
+383,Felix Frankfurter,https://en.wikipedia.org/wiki/Felix_Frankfurter,Advisor to President Roosevelt
+384,Captain Frank J. Fletcher,https://en.wikipedia.org/wiki/Frank_Jack_Fletcher,
+385,Martha R. Fletcher,,Née Richards
+386,Commander Thomas C. Kinkaid,https://en.wikipedia.org/wiki/Thomas_C._Kinkaid,
+387,Helen Ross Kinkaid,https://www.washingtonpost.com/archive/local/1980/12/28/helen-kinkaid-active-in-service-groups-here/84cda695-f01a-4094-9af7-d7927c8b7f9e/,
+388,Dr. Hill Carter,https://www.legacy.com/us/obituaries/timesdispatch/name/hill-carter-obituary?n=hill-carter&pid=14415459,
+389,Kate D. Carter,,Née Stokely
+390,Mr. B.W. Cardwell,,
+391,Mrs. B.W. Cardwell,,
+392,Virginia Voeth,,
+393,Eleanore Peirce,,
+394,O.J. Sands,,
+395,Rodger Coolidge,https://nyti.ms/44YwAb1,
+396,Edith Wilson,https://en.wikipedia.org/wiki/Edith_Wilson,Née Bolling
+397,Colonel H.G. Davids,https://nyti.ms/45nZvET,
+398,Mrs. Davids,,
+399,Mary A. Niblack,https://www.loc.gov/resource/hec.39635/,Née Harrington
+400,Mrs. Henry Miller,,
+401,Carolyn Martin,,
+402,Anne Carter Greene,,
+403,Leila Peoples,,
+404,Fielding L. Williams,,
+405,O.T. Jamerson,,
+406,Admiral William H. Standley,https://en.wikipedia.org/wiki/William_Harrison_Standley,Chief of Naval Operations
+407,Evelyn Standley,,Née Curtis
+408,Admiral Louis A. Johnson,https://en.wikipedia.org/wiki/Louis_A._Johnson,
+409,Ruth Johnson,,Née Maxwell
+410,Admiral Christian J. Peoples,,
+411,General John H. Russell,https://en.wikipedia.org/wiki/John_H._Russell_Jr.,Commandant of the Marine Corps
+412,Mabel Russell,,Née Howard
+413,General Louis McCarty Little,http://www.arlingtoncemetery.net/lmlittle.htm,Asst. Commandant of the Marine Corps
+414,Elsie Little,,Née Cobb
+415,Mary White,,
+416,Mary D. Cook,,
+417,Allen D. Randolph,,
+418,Mrs. Allen D. Randolph,,
+419,Mrs. Fielding L. Williams,,
+420,Claude Pepper,https://en.wikipedia.org/wiki/Claude_Pepper,
+421,Said bin Taimur,https://en.wikipedia.org/wiki/Said_bin_Taimur,Sultan of Muscat & Oman
+422,H.B. Bader ,,Sultan’s aide-de-camp
+423,A.M. Zawawi ,,Sultan’s secretary
+424,George T. Summerlin,https://en.wikipedia.org/wiki/George_T._Summerlin,Chief of Protocol 
+425,Captain W.K. Kilpatrick ,,Sultan’s U.S. Naval Aide
+426,Col. John A. Crane,,Military Aide - United States Army
+427,,,
+428,,,
+429,,,
+430,,,
+431,,,
+432,,,
+433,,,
+434,,,
