@@ -1,46 +1,65 @@
 from typing import Optional, List, Dict, Any
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query
 from psycopg2.extras import RealDictCursor
 from app.db import get_connection
 
-router = APIRouter(tags=["voyages"])
+router = APIRouter(prefix="/api/voyages", tags=["voyages"])
 
 @router.get("/", response_model=List[Dict[str, Any]])
 def list_voyages(
-    significant: Optional[int] = Query(None, description="1 to filter significant voyages, 0 otherwise"),
-    royalty:    Optional[int] = Query(None, description="1 to filter voyages with royalty onboard, 0 otherwise"),
-    date_from:  Optional[str] = Query(None, description="ISO date to filter voyages starting on or after this date"),
-    date_to:    Optional[str] = Query(None, description="ISO date to filter voyages ending on or before this date")
+    q: Optional[str] = Query(None, description="Keyword search in info, notes, or passenger names"),
+    significant: Optional[int] = Query(None, description="1 to filter significant voyages"),
+    royalty: Optional[int]    = Query(None, description="1 to filter voyages with royalty onboard"),
+    date_from: Optional[str]   = Query(None, description="ISO date to filter voyages starting on or after this date"),
+    date_to: Optional[str]     = Query(None, description="ISO date to filter voyages ending on or before this date")
 ) -> List[Dict[str, Any]]:
     """
-    List voyages with optional filters on significance, royalty, and date range.
-    Returns summary fields and flags.
+    List voyages with optional filters on significance, royalty, date range,
+    keyword search in voyage text or passenger names.
     """
     conn = get_connection()
     cur  = conn.cursor(cursor_factory=RealDictCursor)
 
     base_query = (
-        "SELECT voyage_id, start_timestamp, end_timestamp, "
-        "additional_info, notes, "
-        "\"significant_voyage?\" AS significant, "
-        "\"royalty?\" AS royalty FROM voyages"
+        "SELECT DISTINCT v.voyage_id, v.start_timestamp, v.end_timestamp, "
+        "v.additional_info, v.notes, "
+        "v.\"significant_voyage?\" AS significant, "
+        "v.\"royalty?\" AS royalty "
+        "FROM voyages v"
     )
-    conditions, params = [], []
+    joins: List[str]     = []
+    conditions: List[str] = []
+    params: List[Any]    = []
 
+    # Text-search in voyages and passenger names
+    if q:
+        joins.append(" LEFT JOIN voyage_passengers vp ON v.voyage_id = vp.voyage_id")
+        joins.append(" LEFT JOIN passengers p ON vp.passenger_id = p.passenger_id")
+        conditions.append(
+            "(v.additional_info ILIKE %s OR v.notes ILIKE %s OR p.name ILIKE %s)"
+        )
+        params.extend([f"%{q}%", f"%{q}%", f"%{q}%"])
+
+    # Other filters
     if significant is not None:
-        conditions.append('"significant_voyage?" = %s')
+        conditions.append('v.\"significant_voyage?\" = %s')
         params.append(significant)
     if royalty is not None:
-        conditions.append('"royalty?" = %s')
+        conditions.append('v.\"royalty?\" = %s')
         params.append(royalty)
     if date_from:
-        conditions.append('start_timestamp >= %s')
+        conditions.append('v.start_timestamp >= %s')
         params.append(date_from)
     if date_to:
-        conditions.append('end_timestamp <= %s')
+        conditions.append('v.end_timestamp <= %s')
         params.append(date_to)
 
-    query = base_query + (" WHERE " + " AND ".join(conditions) if conditions else "")
+    # Assemble final query
+    query = base_query + "".join(joins)
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
+    query += " ORDER BY v.start_timestamp"
+
     cur.execute(query, params)
     voyages = cur.fetchall()
     cur.close()
