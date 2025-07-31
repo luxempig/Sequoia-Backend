@@ -1,0 +1,39 @@
+name: Deploy Backend to EC2
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Zip backend
+        run: zip -r backend.zip . -x "*.git*"
+
+      - name: Upload to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_KEY }}
+          source: "backend.zip"
+          target: "/home/ec2-user"
+
+      - name: SSH and deploy backend
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            rm -rf ~/sequoia-backend
+            mkdir -p ~/sequoia-backend
+            unzip -o backend.zip -d ~/sequoia-backend 
+            pip install -r ~/sequoia-backend/requirements.txt
+            sudo systemctl restart sequoia-backend
+            rm backend.zip
