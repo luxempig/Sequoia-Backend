@@ -27,13 +27,12 @@ jobs:
       - name: SSH and deploy backend
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_KEY }}
-          script: |
-            rm -rf ~/sequoia-backend
-            mkdir -p ~/sequoia-backend
-            unzip -o backend.zip -d ~/sequoia-backend 
-            pip install -r ~/sequoia-backend/requirements.txt
-            sudo systemctl restart sequoia-backend
-            rm backend.zip
+            host: ${{ secrets.EC2_HOST }}
+            username: ec2-user
+            key: ${{ secrets.EC2_KEY }}
+            script: |
+                cd ~/sequoia-backend
+                git fetch --all
+                git reset --hard origin/main
+                pip install -r requirements.txt
+                sudo systemctl restart sequoia-backend
