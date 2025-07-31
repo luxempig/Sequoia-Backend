@@ -1,12 +1,15 @@
+# File: app/routers/passengers.py
 from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, HTTPException, Query
 from psycopg2.extras import RealDictCursor
 from app.db import get_connection
 
-router = APIRouter(tags=["passengers"])
+router = APIRouter(prefix="/api/passengers", tags=["passengers"])
 
 @router.get("/", response_model=List[Dict[str, Any]])
-def list_passengers(name: Optional[str] = Query(None, description="Filter by passenger name via ILIKE")) -> List[Dict[str, Any]]:
+def list_passengers(
+    name: Optional[str] = Query(None, description="Filter by passenger name via ILIKE")
+) -> List[Dict[str, Any]]:
     """List all passengers, optionally filtering by name."""
     conn = get_connection()
     cur  = conn.cursor(cursor_factory=RealDictCursor)
