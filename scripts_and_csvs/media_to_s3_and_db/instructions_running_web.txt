@@ -1,0 +1,8 @@
+python ingest_sources_drive_optimized.py \
+  --csv stage_sources_web.csv \
+  --bucket uss-sequoia-bucket \
+  --region us-east-2 \
+  --threads 12 \
+  --timeout 20 \
+  --success-out out/uploaded_success_web.csv \
+  --fail-out    out/uploaded_failures_web.csv

@@ -1,10 +1,11 @@
-from dotenv import load_dotenv
-load_dotenv()   # <-- this reads .env for you
 
+from dotenv import load_dotenv
+load_dotenv()
 
 import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from contextlib import contextmanager
 
 def get_connection():
     return psycopg2.connect(
@@ -15,3 +16,17 @@ def get_connection():
         password = os.getenv("DB_PASSWORD"),
         sslmode  = "require"
     )
+
+@contextmanager
+def db_cursor():
+    conn = get_connection()
+    try:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        yield cur
+        conn.commit()
+    finally:
+        try:
+            cur.close()
+        except Exception:
+            pass
+        conn.close()

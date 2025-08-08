@@ -1,0 +1,415 @@
+stg_voyage_id,seq,stop
+1,1,Mathis Shipbuilding Camden NJ
+2,1,Camden NJ
+2,2,The Columbia Yacht Club via Delaware & Raritan Canal
+3,1,"Miami, FL"
+4,1,"Miami, FL"
+5,1,"New London, CT"
+6,1,"Portland, ME"
+6,2,"Rockland, ME"
+6,3,NYC
+7,1,Miami Pier 5
+8,1,"St Petersburg, FL"
+9,1,"Miami, FL"
+10,1,Miami Pier 5
+11,1,"New London, CT"
+12,1,New York Yacht Club (“NYYC”) Landing
+12,2,Manhattan NY
+12,3,National Golf Links of America (South Hampton
+12,4,NY)
+12,5,Greenwich CT
+12,6,Manhattan NY.
+13,1,"New London, CT"
+14,1,"Cape Henry, VA"
+15,1,Potomac River
+16,1,"Charleston, SC"
+16,2,"Sea Island, GA"
+16,3,"Palm Beach, FL"
+17,1,Navy Yard
+17,2,Potomac River
+17,3,Chesapeake Bay
+18,1,"Savannah, GA"
+18,2,"Sapelo Island, GA"
+18,3,"Palm Beach, FL"
+19,1,Potomac River
+20,1,Potomac River
+21,1,"Mount Vernon, VA"
+22,1,Potomac River
+23,1,"Thomas Point, MD"
+24,1,"Quantico, VA"
+24,2,"Piney Point, MD"
+24,3,"Mount Vernon, VA"
+25,1,DC Navy Yard
+26,1,Potomac River
+27,1,"Mount Vernon, VA"
+27,2,"Quantico, VA"
+27,3,Chesapeake Bay
+27,4,"Cornfield Harbor, MD"
+27,5,"Piney Point, MD"
+27,6,"Blackistone and Heron Islands, MD"
+28,1,"Mount Vernon, VA"
+28,2,"Blackistone and Heron Islands, MD"
+29,1,Potomac River
+30,1,"Blackistone and Heron Islands, MD"
+31,1,Sequoia departed the Washington Navy Yard shortly
+31,2,cruising southward along the Potomac River toward Fort Washington before returning. The yacht was decorated with American flags and the colors of various Latin American republics.
+32,1,"Mattawoman Creek, MD"
+32,2,"Mount Vernon, VA"
+33,1,"Quantico, VA"
+33,2,"Piney Point, MD"
+33,3,Crisfield
+33,4,MD (disembarked)
+33,5,"Solomons Island, MD"
+33,6,"Benedict, MD"
+34,1,"Mount Vernon, VA"
+35,1,"Maryland Point, MD"
+36,1,"Quantico, VA"
+36,2,"Thomas Point, MD"
+38,1,Hallowing Point
+38,2,VA (Potomac River)
+39,1,"Mount Vernon, VA"
+40,1,Naval Academy
+40,2,"Annapolis, MD"
+40,3,"Mouth of Chester River, MD"
+40,4,"Brown’s Landing, MD"
+41,1,Potomac River
+44,1,DC Navy Yard
+45,1,"New London, CT"
+46,1,"Mount Vernon, VA"
+47,1,Potomac River
+48,1,Potomac River
+50,1,Annapolis
+50,2,MD (start and finish- routes in between unknown)
+51,1,"Yorktown, VA"
+51,2,"Navy Yard, DC"
+52,1,Navy Yard
+52,2,"Mt. Vernon, VA"
+52,3,Navy Yard
+53,1,Navy Yard
+53,2,"Mount Vernon, VA"
+53,3,"Maryland Point, MD"
+53,4,"Quantico, VA"
+53,5,Navy Yard
+54,1,DC Navy Yard
+56,1,"Annapolis, MD"
+57,1,"Sandy Point, VA"
+57,2,"Navy Yard, DC"
+58,1,"Annapolis, MD"
+58,2,"Honga River, MD"
+58,3,"Solomon’s Island, MD"
+58,4,"West River, MD"
+59,1,"New London, CT"
+60,1,Reina Mercedes Wharf
+60,2,"Annapolis, MD"
+60,3,Kedges Straits
+60,4,Reina Mercedes Wharf
+60,5,"Annapolis, MD"
+61,1,Annapolis MD
+61,2,"Jefferson Island Rod and Gun Club, MD"
+62,1,Annapolis
+62,2,MD (Reina Mercedes Wharf): Herring Bay
+62,3,"MD: Kedges Straits, MD"
+62,4,Navy Yard
+63,1,"Kedges Straits, MD"
+64,1,(Motored
+64,2,Mouth of Rappahannock River
+64,3,"board USS Sequoia) Piney Point, MD"
+64,4,San Marcos Wreck)
+64,5,Chesapeake Bay
+65,1,Annapolis
+65,2,"Herring Bay, MD"
+65,3,"Solomon’s Island, MD"
+65,4,Navy Yard
+66,1,"Mount Vernon, VA"
+67,1,"Mount Vernon, VA"
+68,1,"Haines Point, DC"
+69,1,"Haines Point, DC"
+70,1,"Haines Point, DC"
+71,1,"Cambridge, MD"
+71,2,"Blackistone Island, MD"
+71,3,"Mount Vernon, VA"
+74,1,"Mount Vernon, VA"
+77,1,DC Navy Yard
+78,1,"Banana River Naval Air Station, FL"
+80,1,Potomac River
+81,1,Potomac River
+84,1,Washington Navy Yard
+85,1,Washington Navy Yard
+86,1,"Yorktown, VA"
+103,1,Potomac River
+104,1,Potomac River
+106,1,"Palm Beach, FL"
+107,1,\[DC Navy yard\]
+109,1,"Mount Vernon, VA"
+111,1,Naval Air Station (Pensacola?)
+122,1,from anchorage off Blakiston Island
+122,2,enroute
+122,3,the Naval Gun Factory
+124,1,Potomac River
+127,1,Washington Navy Yard
+128,1,Cruise down Potomac toward Mount Vernon
+133,1,"Mount Vernon, VA"
+135,1,"Mount Vernon, VA"
+136,1,"Mount Vernon, VA"
+138,1,Potomac River
+139,1,Mount Vernon
+140,1,Anacostia Naval Base
+141,1,Anacostia Naval Base
+142,1,"Mount Vernon, VA"
+144,1,Anacostia Naval Base
+148,1,"Mount Vernon, VA"
+149,1,Anacostia Naval Base
+152,1,Navy Yard
+152,2,Potomac River
+152,3,Navy Yard
+159,1,Anacostia Naval Station
+163,1,Naval Station
+163,2,Anacostia
+163,3,Columbia Island Marina
+164,1,Navy Yard
+164,2,14th St. Bridge
+164,3,Admiral’s Bridge
+164,4,Key Bridge
+164,5,cruised
+164,6,Woodrow Wilson Bridge
+165,1,Navy Yard
+168,1,Navy Yard
+168,2,Potomac River
+173,1,Anacostia
+177,1,Navy Yard (Pier One)
+179,1,Anacostia
+182,1,Quantico
+182,2,Chesapeake Bay Bridge
+183,1,Anacostia
+183,2,Navy Yard
+185,1,Anacostia
+185,2,Mount Vernon
+185,3,Quantico
+188,1,"Mount Vernon, VA"
+189,1,"Mount Vernon, VA"
+191,1,Navy Yard
+191,2,Quantico (overnight)
+192,1,Quantico
+193,1,Quantico
+194,1,"Mount Vernon, VA"
+194,2,Anacostia
+195,1,Anacostia
+200,1,Washington Navy Yard
+203,1,"Mount Vernon, VA"
+205,1,"Mount Vernon, VA"
+206,1,from pier one
+206,2,Federal Record Center Dock
+208,1,Washington Navy Yard
+209,1,Washington Navy Yard
+210,1,Pier \#1 of Washington Navy Yard
+210,2,Potomac River
+212,1,Potomac River
+213,1,Washington Navy Yard
+214,1,Potomac River
+215,1,Washington Navy Yard
+216,1,Washington Navy Yard
+218,1,Potomac River
+219,1,Washington Navy Yard
+221,1,Potomac River
+222,1,Potomac River
+223,1,Potomac River
+224,1,Washington Navy Yard
+225,1,Washington Navy Yard
+226,1,Potomac River
+227,1,Potomac River
+228,1,Potomac River
+229,1,Potomac River
+230,1,Washington Navy Yard
+231,1,Washington Navy Yard
+231,2,cruise
+231,3,Mount Vernon
+232,1,Potomac River
+234,1,Potomac River
+235,1,Potomac River
+237,1,Washington Navy Yard
+238,1,Potomac River
+239,1,Potomac River
+240,1,Potomac River
+241,1,Potomac River
+242,1,Potomac River
+243,1,Washington Navy Yard
+244,1,Washington Navy Yard
+245,1,Potomac River
+246,1,Washington Navy Yard
+247,1,Washington Navy Yard
+248,1,Washington Navy Yard
+249,1,Washington Navy Yard
+250,1,Mount Vernon
+250,2,Washington Navy Yard (Potomac River)
+251,1,(helicopter from Camp David to) Washington Navy Yard
+252,1,Washington Navy Yard
+253,1,Washington Navy Yard
+254,1,Washington Navy Yard
+255,1,Washington Navy Yard
+258,1,Washington Navy Yard
+259,1,Washington Navy Yard
+260,1,Potomac River
+265,1,Washington Navy Yard
+266,1,Navy Yard Mount Vernon
+272,1,Washington Navy Yard
+273,1,Washington Navy Yard
+276,1,Washington Navy Yard
+280,1,Washington Navy Yard
+281,1,Washington Navy Yard
+282,1,Washington Navy Yard
+284,1,Washington Navy Yard
+285,1,Washington Navy Yard
+286,1,Washington Navy Yard
+292,1,Washington Navy Yard – Potomac River
+293,1,Washington Navy Yard
+300,1,Washington Navy Yard
+301,1,Washington Navy Yard
+302,1,Washington Navy Yard
+303,1,Washington Navy Yard
+304,1,Washington Navy Yard
+306,1,Launch from MV
+306,2,Cruise on Potomac
+311,1,Washington Navy Yard
+312,1,Washington Navy Yard
+313,1,Washington Navy Yard
+314,1,Washington Navy Yard
+315,1,Washington Navy Yard
+317,1,Washington Navy yard – Mount Vernon (fly via helicopter- end at Camp David)
+318,1,Washington Navy Yard
+319,1,Potomac River
+320,1,Washington Navy Yard – Mount Vernon (fly via helicopter
+320,2,WH)
+321,1,Navy Yard
+322,1,Washington Navy Yard – Mount Vernon (fly via helicopter
+322,2,WH)
+324,1,Washington Navy Yard – Mount Vernon (fly via helicopter
+324,2,WH)
+325,1,Washington Navy Yard
+326,1,Washington Navy Yard – Mount Vernon (fly via helicopter
+326,2,WH)
+327,1,(fly via helicopter from Andrews AFB to) Washington Navy Yard
+328,1,Washington Navy Yard (Potomac?)
+329,1,Washington Navy Yard
+330,1,Potomac River
+331,1,Potomac River
+332,1,Washington Navy Yard
+333,1,Washington Navy Yard
+334,1,18:09 – 20:00
+335,1,Potomac River
+336,1,Washington Navy Yard
+337,1,Washington Navy Yard
+338,1,Washington Navy Yard
+339,1,Potomac River
+340,1,Washington Navy Yard
+341,1,Washington Navy Yard \- Anacostia
+342,1,Washington Navy Yard
+343,1,Washington Navy Yard
+344,1,Washington Navy Yard
+345,1,Washington Navy Yard
+346,1,Washington Navy Yard
+347,1,Washington Navy Yard
+348,1,Washington Navy Yard
+349,1,Washington Navy Yard
+350,1,Washington Navy Yard
+351,1,Washington Navy Yard
+352,1,Washington Navy Yard
+353,1,Washington Navy Yard
+354,1,Washington Navy Yard
+355,1,Washington Navy Yard
+356,1,Washington Navy Yard
+357,1,Washington Navy Yard
+358,1,Potomac River
+360,1,Washington Navy Yard
+361,1,Potomac River
+362,1,Washington Navy Yard
+363,1,Washington Navy Yard
+365,1,Washington Navy Yard
+366,1,Washington Navy Yard
+367,1,Washington Navy Yard
+368,1,Washington Navy Yard
+369,1,Washington Navy Yard
+370,1,Washington Navy Yard
+371,1,Washington Navy Yard
+372,1,Washington Navy Yard
+373,1,Washington Navy Yard
+374,1,Washington Navy Yard
+375,1,Washington Navy Yard
+376,1,Washington Navy Yard
+377,1,Washington Navy Yard
+378,1,Washington Navy Yard
+379,1,Washington Navy Yard
+380,1,Washington Navy Yard – Mount Vernon (fly via helicopter
+380,2,WH)
+381,1,Washington Navy Yard
+382,1,Washington Navy Yard
+383,1,Washington Navy Yard
+384,1,Washington Navy Yard
+385,1,Potomac River
+386,1,Potomac River
+387,1,Washington Navy Yard / Potomac
+388,1,Washington Navy Yard
+389,1,Washington Navy Yard
+390,1,Washington Navy Yard
+391,1,Potomac River
+393,1,Potomac River
+394,1,Washington Navy Yard
+395,1,Potomac River
+396,1,Washington Navy Yard
+397,1,Washington Navy Yard
+398,1,Washington Navy Yard
+400,1,Washington Navy Yard/ Potomac
+401,1,Potomac River
+402,1,Washington Navy Yard
+403,1,Potomac River
+404,1,Washington Navy Yard
+405,1,Washington Navy Yard
+406,1,Mount Vernon
+407,1,Washington Navy Yard
+407,2,Potomac River
+408,1,Washington Navy Yard
+409,1,Navy Yard \- Mount Vernon \- Navy Yard
+410,1,Washington Navy Yard
+411,1,Washington Navy Yard
+412,1,Washington Navy Yard
+413,1,Washington Navy Yard
+414,1,Washington Navy Yard
+415,1,Washington Navy Yard
+416,1,Washington Navy Yard
+417,1,Washington Navy Yard
+418,1,Washington Navy Yard
+419,1,Washington Navy Yard
+420,1,Washington Navy Yard
+421,1,Washington Navy Yard
+422,1,Washington Navy Yard
+423,1,Washington Navy Yard
+424,1,Washington Navy Yard
+425,1,Washington Navy Yard
+426,1,Washington Navy Yard
+427,1,Washington Navy Yard
+428,1,Washington Navy Yard
+429,1,Washington Navy Yard
+431,1,Washington Navy Yard
+432,1,Washington Navy Yard
+433,1,Washington Navy Yard
+434,1,Washington Navy Yard
+435,1,Washington Navy Yard
+436,1,Washington Navy Yard
+437,1,Washington Navy Yard
+438,1,Washington Navy Yard
+439,1,Washington Navy Yard
+440,1,Washington Navy Yard
+441,1,Washington Navy Yard
+442,1,Potomac River
+443,1,Washington Navy Yard
+444,1,Washington Navy Yard
+445,1,Washington Navy Yard
+446,1,Washington Navy Yard
+448,1,Washington Marina
+449,1,Potomac River
+450,1,40 ports in 16 states
+451,1,Potomac River
+452,1,"New York Harbor, NY"
+454,1,U.S. Park Service Pier \- turn around at Alexandria \- US Park Service Pier
+455,1,Potomac
+456,1,N/A
+459,1,Potomac River

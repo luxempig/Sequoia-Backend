@@ -1,29 +1,31 @@
-# File: app/main.py
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers.voyages     import router as voyages_router
 from app.routers.passengers  import router as passengers_router
-from app.routers.presidents  import router as presidents_router   # ← NEW
+from app.routers.presidents  import router as presidents_router
+from app.routers.sources     import router as sources_router
+from app.routers.meta        import router as meta_router
 
-app = FastAPI(title="Sequoia API")
+from app.config import get_settings
 
-# Enable CORS for the frontend
+s = get_settings()
+app = FastAPI(title=s.APP_TITLE)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://ec2-18-191-216-71.us-east-2.compute.amazonaws.com",
-    ],
+    allow_origins=[str(o) for o in s.CORS_ORIGINS],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include API routers
 app.include_router(voyages_router)
 app.include_router(passengers_router)
-app.include_router(presidents_router)       # ← NEW
+app.include_router(presidents_router)
+app.include_router(sources_router)
+app.include_router(meta_router)
 
 @app.get("/", tags=["root"])
 def read_root():

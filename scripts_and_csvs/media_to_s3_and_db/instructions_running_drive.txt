@@ -1,0 +1,9 @@
+pip install gdown boto3 requests urllib3 python-dotenv
+python ingest_sources_drive_optimized.py \
+  --csv stage_sources_drive.csv \
+  --bucket uss-sequoia-bucket \
+  --region us-east-2 \
+  --threads 4 \
+  --timeout 30 \
+  --success-out out/uploaded_success_drive.csv \
+  --fail-out    out/uploaded_failures_drive.csv
