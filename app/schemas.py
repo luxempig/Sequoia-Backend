@@ -1,6 +1,6 @@
 
-from typing import Optional
-from pydantic import BaseModel
+from typing import Optional, List
+from pydantic import BaseModel, EmailStr, Field
 
 class Passenger(BaseModel):
     passenger_id: int
@@ -27,3 +27,10 @@ class Voyage(BaseModel):
     royalty: Optional[int] = None
     president_id: Optional[int] = None
     president_name: Optional[str] = None
+
+class SubmissionCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    email: EmailStr
+    subject: str = Field(min_length=1, max_length=200)
+    message: str = Field(min_length=1, max_length=10000)
+    urls: Optional[List[str]] = None
