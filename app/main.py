@@ -7,6 +7,8 @@ from app.routers.passengers  import router as passengers_router
 from app.routers.presidents  import router as presidents_router
 from app.routers.sources     import router as sources_router
 from app.routers.meta        import router as meta_router
+from app.routers import submissions
+
 
 from app.config import get_settings
 
