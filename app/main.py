@@ -26,6 +26,8 @@ app.include_router(passengers_router)
 app.include_router(presidents_router)
 app.include_router(sources_router)
 app.include_router(meta_router)
+app.include_router(submissions.router, prefix="/api/submissions", tags=["submissions"])
+
 
 @app.get("/", tags=["root"])
 def read_root():
