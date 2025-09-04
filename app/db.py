@@ -1,4 +1,3 @@
-
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -20,8 +19,8 @@ def get_connection():
 @contextmanager
 def db_cursor():
     conn = get_connection()
+    cur  = conn.cursor(cursor_factory=RealDictCursor)
     try:
-        cur = conn.cursor(cursor_factory=RealDictCursor)
         yield cur
         conn.commit()
     finally:
