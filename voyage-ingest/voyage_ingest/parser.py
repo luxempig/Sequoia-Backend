@@ -3,15 +3,17 @@ from __future__ import annotations
 import os
 import re
 import logging
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
+
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
-from voyage_ingest.slugger import generate_media_slugs
+from voyage_ingest.slugger import generate_media_slugs, slugify
 
 LOG = logging.getLogger("voyage_ingest.parser")
 
 DOCS_SCOPES = ["https://www.googleapis.com/auth/documents.readonly"]
+SHEETS_SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 
 # -------- Google Docs helpers --------
 
@@ -21,6 +23,13 @@ def _docs_service():
         raise RuntimeError("GOOGLE_APPLICATION_CREDENTIALS not set or invalid path")
     creds = service_account.Credentials.from_service_account_file(creds_path, scopes=DOCS_SCOPES)
     return build("docs", "v1", credentials=creds)
+
+def _sheets_service():
+    creds_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "").strip()
+    if not creds_path or not os.path.exists(creds_path):
+        raise RuntimeError("GOOGLE_APPLICATION_CREDENTIALS not set or invalid path")
+    creds = service_account.Credentials.from_service_account_file(creds_path, scopes=SHEETS_SCOPES)
+    return build("sheets", "v4", credentials=creds)
 
 def _read_doc_as_text(doc_id: str) -> str:
     docs = _docs_service()
@@ -35,7 +44,6 @@ def _read_doc_as_text(doc_id: str) -> str:
             t = el.get("textRun", {}).get("content")
             if t:
                 chunks.append(t)
-    # Google Docs tends to add stray \n—keep them (the parser expects lines)
     return "".join(chunks)
 
 # -------- Minimal “YAML-ish” line parser used in our doc format --------
@@ -44,13 +52,6 @@ def _strip_bom(s: str) -> str:
     return s.lstrip("\ufeff")
 
 def _split_entries_block(lines: List[str]) -> List[List[str]]:
-    """
-    Given a block like:
-      - key: val
-        sub: val
-      - key: val
-    return a list of list-of-lines for each entry (leading '- ' preserved only on first line).
-    """
     entries: List[List[str]] = []
     cur: List[str] = []
     for ln in lines:
@@ -58,15 +59,12 @@ def _split_entries_block(lines: List[str]) -> List[List[str]]:
             if cur:
                 entries.append(cur)
                 cur = []
-            cur.append(ln.strip()[2:])  # drop "- "
+            cur.append(ln.strip()[2:])
         elif ln.startswith("  ") or ln.startswith("\t"):
             cur.append(ln.strip())
         elif ln.strip() == "":
-            # allow blank lines inside an entry
             cur.append("")
         else:
-            # new section started: caller should stop earlier
-            # but if it happens, finalize current and break
             if cur:
                 entries.append(cur)
                 cur = []
@@ -75,9 +73,6 @@ def _split_entries_block(lines: List[str]) -> List[List[str]]:
     return entries
 
 def _parse_kv_block(lines: List[str]) -> Dict[str, str]:
-    """
-    Parse key: value pairs; supports multiline with `|` on the value line.
-    """
     out: Dict[str, str] = {}
     i = 0
     while i < len(lines):
@@ -87,20 +82,17 @@ def _parse_kv_block(lines: List[str]) -> Dict[str, str]:
             i += 1
             continue
         if ":" not in s:
-            # ignore non-kv lines here
             i += 1
             continue
         key, rest = s.split(":", 1)
         key = key.strip()
         val = rest.strip()
         if val == "|":
-            # capture all indented lines until a non-indented KV or EOF
             i += 1
             buf: List[str] = []
             while i < len(lines):
                 nxt = lines[i]
                 if nxt.startswith("  ") or nxt.startswith("\t") or nxt.strip() == "":
-                    # keep as-is (but strip single leading indent)
                     buf.append(nxt.lstrip())
                     i += 1
                 else:
@@ -114,13 +106,9 @@ def _parse_kv_block(lines: List[str]) -> Dict[str, str]:
 
 # -------- Top-level doc parser --------
 
-SECTION_SPLIT_RE = re.compile(r"^\s*---\s*$", re.MULTILINE)
-
 def _partition_into_voyages(doc_text: str) -> List[str]:
     """
-    The doc contains one or more voyages, each with sections separated by lines '---'.
-    We split on lines with only '---' but keep internal '---' that separate the three sections.
-    Strategy: find every '## Voyage' heading as a voyage start; slice until next '## Voyage' or EOF.
+    Split by each '## Voyage' section as one voyage block.
     """
     lines = doc_text.splitlines()
     starts = [i for i, ln in enumerate(lines) if ln.strip() == "## Voyage"]
@@ -131,9 +119,6 @@ def _partition_into_voyages(doc_text: str) -> List[str]:
     return voyages
 
 def _extract_section(block: str, header: str) -> List[str]:
-    """
-    Extract the lines under a '## <header>' until the next '---' or next '## ' header.
-    """
     lines = block.splitlines()
     out: List[str] = []
     in_sec = False
@@ -145,20 +130,51 @@ def _extract_section(block: str, header: str) -> List[str]:
             if ln.strip() == "---" or ln.strip().startswith("## "):
                 break
             out.append(ln)
-    # strip leading/trailing blank lines
     while out and out[0].strip() == "":
         out.pop(0)
     while out and out[-1].strip() == "":
         out.pop()
     return out
 
+# -------- Presidents helpers (sheet) --------
+
+def _read_presidents_fullname_to_slug(spreadsheet_id: str) -> Dict[str, str]:
+    """
+    Reads 'presidents' tab and maps lower(full_name) -> president_slug.
+    Accepts headers: full_name, president_slug (case-insensitive).
+    """
+    svc = _sheets_service()
+    title = os.environ.get("PRESIDENTS_SHEET_TITLE", "presidents").strip() or "presidents"
+    res = svc.spreadsheets().values().get(
+        spreadsheetId=spreadsheet_id,
+        range=f"{title}!A:ZZ"
+    ).execute()
+    vals = res.get("values", []) or []
+    if not vals:
+        return {}
+    header = [h.strip().lower() for h in vals[0]]
+    try:
+        i_full = header.index("full_name")
+        i_slug = header.index("president_slug")
+    except ValueError:
+        return {}
+    out: Dict[str, str] = {}
+    for row in vals[1:]:
+        full = (row[i_full] if i_full < len(row) else "").strip()
+        slug = (row[i_slug] if i_slug < len(row) else "").strip()
+        if full and slug:
+            out[full.lower()] = slug
+    return out
+
+# -------- Main parse --------
+
 def parse_doc_multi(doc_id: str) -> List[Dict]:
     """
     Returns a list of voyage bundles:
       {
-        "voyage": { ... },
-        "passengers": [ { ... }, ... ],
-        "media": [ { ... }, ... ]
+        "voyage": { ... },            # includes president + computed voyage_slug
+        "passengers": [ ... ],
+        "media": [ ... ]
       }
     Media 'slug' is auto-generated later by slugger.generate_media_slugs().
     """
@@ -166,12 +182,18 @@ def parse_doc_multi(doc_id: str) -> List[Dict]:
     voyage_blocks = _partition_into_voyages(text)
     bundles: List[Dict] = []
 
+    # We need presidents mapping to compute voyage_slug
+    spreadsheet_id = os.environ.get("SPREADSHEET_ID", "").strip()
+    pres_map = _read_presidents_fullname_to_slug(spreadsheet_id) if spreadsheet_id else {}
+
+    # For uniqueness (same owner + same day)
+    counters: Dict[Tuple[str, str], int] = {}
+
     for vb in voyage_blocks:
         v_lines = _extract_section(vb, "Voyage")
         p_lines = _extract_section(vb, "Passengers")
         m_lines = _extract_section(vb, "Media")
 
-        # Parse sections
         voyage = _parse_kv_block(v_lines)
 
         passengers: List[Dict] = []
@@ -186,13 +208,30 @@ def parse_doc_multi(doc_id: str) -> List[Dict]:
             for ent in entries:
                 media.append(_parse_kv_block(ent))
 
-        bundle = {"voyage": voyage, "passengers": passengers, "media": media}
+        # ---- Compute voyage_slug from start_date + president full name
+        sd = (voyage.get("start_date") or "").strip()
+        pres_full = (voyage.get("president") or "").strip()
+        title = (voyage.get("title") or "").strip()
+        descriptor = slugify(title) or "voyage"
+        pres_slug = pres_map.get(pres_full.lower(), slugify(pres_full) if pres_full else "unknown-president")
+
+        base_slug = f"{sd}-{pres_slug}-{descriptor}" if sd and pres_slug else (voyage.get("voyage_slug") or "")
+        if sd and pres_slug:
+            key = (sd, pres_slug)
+            counters[key] = counters.get(key, 0) + 1
+            n = counters[key]
+            voyage_slug = f"{base_slug}-{n:02d}" if n > 1 else base_slug
+            voyage["voyage_slug"] = voyage_slug
+            voyage["president_slug"] = pres_slug  # pass through for downstream join
+        else:
+            # fallback to existing slug if provided (validator will complain otherwise)
+            voyage["voyage_slug"] = voyage.get("voyage_slug", "")
 
         # Generate media slugs in-place (requires 'date' and 'credit')
         if media:
             generate_media_slugs(media, voyage_slug=voyage.get("voyage_slug", ""))
 
-        bundles.append(bundle)
+        bundles.append({"voyage": voyage, "passengers": passengers, "media": media})
 
     LOG.info("Parsed %d voyage bundle(s) from doc %s", len(bundles), doc_id)
     return bundles

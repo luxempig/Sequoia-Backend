@@ -1,16 +1,14 @@
 """
-Main entry for multi-voyage docs with optional PRUNE mode.
+Main entry for multi-voyage docs.
 
 Env (required):
   DOC_ID
   SPREADSHEET_ID
 
-Env (optional):
-  SYNC_MODE       = "upsert" | "prune"        (default: upsert)
-  DRY_RUN         = "true" | "false"          (default: false)
-  PRUNE_MASTERS   = "true" | "false"          (default: false)  # DB master rows
-  # DB_* vars required if using DB upserts/prune:
-  # DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD, DB_SCHEMA (default: sequoia)
+Behavior:
+- If DRY_RUN=false: enforce Sheets + DB to match the master Doc exactly (prune extras),
+  while S3 is additive (no mass deletes). S3 objects are only removed when the SAME
+  media link is being renamed/moved to a new required path.
 """
 
 import os
@@ -30,7 +28,6 @@ from voyage_ingest import (
 LOG = logging.getLogger("voyage_ingest")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
-
 def _classify_status(validation_errors, media_errors):
     if validation_errors:
         return "ERROR"
@@ -38,34 +35,23 @@ def _classify_status(validation_errors, media_errors):
         return "WITH_WARNINGS"
     return "OK"
 
-
 def _as_bool(s: str, default=False) -> bool:
     if s is None:
         return default
     return s.strip().lower() in {"1", "true", "yes", "y", "on"}
-
 
 def main():
     load_dotenv()
 
     doc_id = os.environ.get("DOC_ID")
     spreadsheet_id = os.environ.get("SPREADSHEET_ID")
-    sync_mode = (os.environ.get("SYNC_MODE") or "upsert").strip().lower()
     dry_run = _as_bool(os.environ.get("DRY_RUN"), default=False)
-    prune_masters = _as_bool(os.environ.get("PRUNE_MASTERS"), default=False)
 
     if not doc_id or not spreadsheet_id:
         LOG.error("Missing required env vars: DOC_ID and/or SPREADSHEET_ID")
         return
 
-    if sync_mode not in {"upsert", "prune"}:
-        LOG.warning("Unknown SYNC_MODE '%s'; defaulting to 'upsert'", sync_mode)
-        sync_mode = "upsert"
-
-    LOG.info(
-        "=== Voyage Ingest (multi-doc) ===  SYNC_MODE=%s  DRY_RUN=%s  PRUNE_MASTERS=%s",
-        sync_mode, dry_run, prune_masters
-    )
+    LOG.info("=== Voyage Ingest ===  DRY_RUN=%s", dry_run)
 
     # ---------------- Parse the Google Doc into voyage bundles ----------------
     bundles = parser.parse_doc_multi(doc_id)
@@ -73,32 +59,30 @@ def main():
         LOG.error("No voyages found in the document.")
         return
 
-    # ---------------- Global prune: voyages missing from the Doc ----------------
-    # If a voyage was removed from the Doc, it won't appear in `bundles`.
-    # This step prunes any voyage present in Sheets/DB/S3 but missing from the Doc.
-    global_prune_stats = None
-    if sync_mode == "prune":
-        desired_slugs = {
-            (b.get("voyage") or {}).get("voyage_slug", "").strip()
-            for b in bundles
-            if (b.get("voyage") or {}).get("voyage_slug")
-        }
-        # Remove potential empty strings
-        desired_slugs = {s for s in desired_slugs if s}
-        global_prune_stats = reconciler.prune_voyages_missing_from_doc_with_set(
-            desired_voyage_slugs=desired_slugs,
-            dry_run=dry_run,
-            prune_db=True,
-            prune_sheets=True,
-            prune_s3=True,
-        )
-        LOG.info("Global prune of missing voyages: %s", global_prune_stats)
-
-    # ---------------- Per-voyage processing ----------------
+    # ---------------- Global exactness: remove voyages missing from Doc (Sheets/DB only) ----------------
     ts = datetime.utcnow().isoformat(timespec="seconds") + "Z"
     log_rows = []
     total_errors = 0
 
+    desired_slugs = {
+        (b.get("voyage") or {}).get("voyage_slug", "").strip()
+        for b in bundles
+        if (b.get("voyage") or {}).get("voyage_slug")
+    }
+    desired_slugs = {s for s in desired_slugs if s}
+
+    global_prune_stats = None
+    # When not in dry-run, ensure exact match for Sheets/DB (no S3 global prune)
+    global_prune_stats = reconciler.prune_voyages_missing_from_doc_with_set(
+        desired_voyage_slugs=desired_slugs,
+        dry_run=dry_run,
+        prune_db=True,
+        prune_sheets=True,
+        prune_s3=False,  # keep S3 additive; we only rename on same-link changes
+    )
+    LOG.info("Global reconcile of missing voyages (Sheets/DB only): %s", global_prune_stats)
+
+    # ---------------- Per-voyage processing ----------------
     for idx, bundle in enumerate(bundles, start=1):
         v = bundle.get("voyage") or {}
         vslug = (v.get("voyage_slug") or "").strip()
@@ -110,71 +94,47 @@ def main():
             total_errors += len(errs)
             for e in errs:
                 LOG.error(" - %s", e)
-            # Log an error row and skip this voyage
             log_rows.append([
                 ts, doc_id, vslug or f"[bundle#{idx}]",
-                "ERROR",
-                str(len(errs)), "0",
-                str(len(bundle.get("media", []) or [])),  # media_declared
-                "0", "0",                                  # media_uploaded, thumbs_uploaded
-                "upsert" if sync_mode == "upsert" else "prune",
-                "TRUE" if dry_run else "FALSE",
-                "0", "0",                                   # s3_deleted, s3_archived
-                "0", "0",                                   # sheets_deleted_vm, sheets_deleted_vp
-                "0", "0",                                   # db_deleted_vm, db_deleted_vp
-                "0", "0",                                   # db_deleted_media, db_deleted_people
+                "ERROR", str(len(errs)), "0",
+                str(len(bundle.get("media", []) or [])),
+                "0","0",
+                "exact","TRUE" if dry_run else "FALSE",
+                "0","0","0","0","0","0","0","0",
                 errs[0][:250] if errs else "",
             ])
             continue
 
-        # 2) Drive → S3 uploads (originals + derivatives for images)
+        # 2) Media → S3 (additive; move only on same-link rename)
         s3_links, media_errors = drive_sync.process_all_media(
-            bundle.get("media", []), vslug
+            bundle.get("media", []), vslug, spreadsheet_id=spreadsheet_id
         )
         for me in media_errors:
             LOG.warning("Media issue: %s", me)
 
-        # 3) PRUNE S3 (per-voyage) BEFORE Sheets upserts
-        s3_deleted = s3_archived = 0
-        if sync_mode == "prune":
-            s3_stats = reconciler.diff_and_prune_s3(
-                vslug,
-                bundle.get("media", []) or [],
-                dry_run=dry_run
-            )
-            s3_deleted = s3_stats.get("s3_deleted", 0)
-            s3_archived = s3_stats.get("s3_archived", 0)
-
-        # 4) Upsert Sheets (this writes voyages, media master, people master, and join tabs)
+        # 3) Upsert Sheets
         sheets_updater.update_all(spreadsheet_id, bundle, s3_links)
 
-        # 5) PRUNE Sheets join rows (per-voyage) AFTER upserts
+        # 4) Per-voyage prune of joins (Sheets/DB) AFTER upserts to ensure exact match with Doc
         sheets_deleted_vm = sheets_deleted_vp = 0
-        if sync_mode == "prune":
-            sheet_stats = reconciler.diff_and_prune_sheets(bundle, dry_run=dry_run)
-            sheets_deleted_vm = sheet_stats.get("deleted_voyage_media", 0)
-            sheets_deleted_vp = sheet_stats.get("deleted_voyage_passengers", 0)
+        db_deleted_vm = db_deleted_vp = db_deleted_media = db_deleted_people = 0
+        sheet_stats = reconciler.diff_and_prune_sheets(bundle, dry_run=dry_run)
+        sheets_deleted_vm = sheet_stats.get("deleted_voyage_media", 0)
+        sheets_deleted_vp = sheet_stats.get("deleted_voyage_passengers", 0)
 
-        # 6) Upsert DB (per-voyage)
+        db_stats = reconciler.diff_and_prune_db(bundle, dry_run=dry_run, prune_masters=not dry_run)
+        db_deleted_vm = db_stats.get("db_deleted_voyage_media", 0)
+        db_deleted_vp = db_stats.get("db_deleted_voyage_passengers", 0)
+        db_deleted_media = db_stats.get("db_deleted_media", 0)
+        db_deleted_people = db_stats.get("db_deleted_people", 0)
+
+        # 5) Upsert DB (idempotent)
         try:
             db_updater.upsert_all(bundle, s3_links)
         except Exception as e:
             LOG.warning("DB upsert failed for %s: %s", vslug, e)
 
-        # 7) PRUNE DB (per-voyage) AFTER upserts
-        db_deleted_vm = db_deleted_vp = db_deleted_media = db_deleted_people = 0
-        if sync_mode == "prune":
-            db_stats = reconciler.diff_and_prune_db(
-                bundle,
-                dry_run=dry_run,
-                prune_masters=prune_masters
-            )
-            db_deleted_vm = db_stats.get("db_deleted_voyage_media", 0)
-            db_deleted_vp = db_stats.get("db_deleted_voyage_passengers", 0)
-            db_deleted_media = db_stats.get("db_deleted_media", 0)
-            db_deleted_people = db_stats.get("db_deleted_people", 0)
-
-        # 8) Per-voyage ingest_log row
+        # 6) Per-voyage ingest_log row
         status = _classify_status(errs, media_errors)
         media_declared = len(bundle.get("media", []) or [])
         media_uploaded = sum(1 for _, (orig, _pub) in s3_links.items() if orig)
@@ -188,37 +148,32 @@ def main():
             str(media_declared),
             str(media_uploaded),
             str(thumbs_uploaded),
-            "upsert" if sync_mode == "upsert" else "prune",
-            "TRUE" if dry_run else "FALSE",
-            str(s3_deleted), str(s3_archived),
+            "exact", "TRUE" if dry_run else "FALSE",
+            "0","0",
             str(sheets_deleted_vm), str(sheets_deleted_vp),
             str(db_deleted_vm), str(db_deleted_vp),
             str(db_deleted_media), str(db_deleted_people),
             note[:250],
         ])
 
-    # 9) Optional: log a GLOBAL row summarizing global prune (voyages missing from Doc)
-    if sync_mode == "prune" and global_prune_stats is not None:
-        # Put a synthetic row in ingest_log with voyage_slug = [GLOBAL]
+    # 7) Add a GLOBAL row summarizing global reconcile (Sheets/DB)
+    if global_prune_stats is not None:
         log_rows.append([
             ts, doc_id, "[GLOBAL]",
             "OK",
-            "0", "0",           # errors_count, warnings_count
-            "0", "0", "0",      # media_declared, media_uploaded, thumbs_uploaded
-            "prune",
-            "TRUE" if dry_run else "FALSE",
-            str(global_prune_stats.get("s3_deleted", 0)),
-            str(global_prune_stats.get("s3_archived", 0)),
-            str(global_prune_stats.get("sheets_deleted_rows", 0)),  # we use a single total for sheets
-            "0",  # sheets_deleted_vp not separated here
+            "0","0","0","0","0",
+            "exact","TRUE" if dry_run else "FALSE",
+            "0","0",
+            str(global_prune_stats.get("sheets_deleted_rows", 0)),
+            "0",
             str(global_prune_stats.get("db_deleted_vm", 0)),
             str(global_prune_stats.get("db_deleted_vp", 0)),
             str(global_prune_stats.get("db_deleted_voyages", 0)),
-            "0",  # db_deleted_people not applicable in global prune (masters unaffected)
+            "0",
             f"missing_count={global_prune_stats.get('missing_count', 0)}",
         ])
 
-    # 10) Write all log rows
+    # 8) Write log
     if log_rows:
         try:
             sheets_updater.append_ingest_log(spreadsheet_id, log_rows)
@@ -230,7 +185,6 @@ def main():
         LOG.warning("Completed with %d error(s). See logs above.", total_errors)
     else:
         LOG.info("Completed successfully: %d voyage(s) processed.", len(bundles))
-
 
 if __name__ == "__main__":
     main()
