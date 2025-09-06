@@ -102,12 +102,7 @@ def _download_drive_binary(file_id: str) -> Tuple[bytes, str]:
     return buf.getvalue(), mime
 
 def _download_dropbox_binary(shared_url: str) -> Tuple[bytes, str, Optional[str]]:
-    """
-    Returns (bytes, content_type, filename_ext_guess)
-    If DROPBOX_ACCESS_TOKEN is present, use API for reliability. Otherwise, use direct-download link (?dl=1).
-    """
     if DROPBOX_ACCESS_TOKEN:
-        # https://content.dropboxapi.com/2/sharing/get_shared_link_file
         api = "https://content.dropboxapi.com/2/sharing/get_shared_link_file"
         headers = {
             "Authorization": f"Bearer {DROPBOX_ACCESS_TOKEN}",
@@ -122,7 +117,6 @@ def _download_dropbox_binary(shared_url: str) -> Tuple[bytes, str, Optional[str]
         if m: ext = m.group(1).lower()
         return r.content, ctype, ext
     else:
-        # sanitize to force download
         dl = shared_url
         if "dl=0" in dl: dl = dl.replace("dl=0", "dl=1")
         elif "dl=1" in dl: pass
@@ -177,15 +171,52 @@ def _s3_url(bucket: str, key: str) -> str:
 def _public_http_url(bucket: str, key: str) -> str:
     return f"https://{bucket}.s3.amazonaws.com/{key}"
 
-def _s3_key_for_original(vslug: str, mslug: str, mtype: str, ext: str, credit: str) -> str:
+def _s3_key_for_original(*args) -> str:
+    """
+    Backward-compatible signature for original object key:
+      New: _s3_key_for_original(vslug, mslug, mtype, ext, credit)
+      Old: _s3_key_for_original(vslug, mslug, mtype, ext)
+      Oldest: _s3_key_for_original(vslug, mslug, mtype)
+
+    - If ext is missing, default to "bin".
+    - If credit is missing, default to "" (which normalizes to "unknown-source").
+    """
+    if len(args) == 5:
+        vslug, mslug, mtype, ext, credit = args
+    elif len(args) == 4:
+        vslug, mslug, mtype, ext = args
+        credit = ""
+    elif len(args) == 3:
+        vslug, mslug, mtype = args
+        ext = "bin"
+        credit = ""
+    else:
+        raise TypeError(f"_s3_key_for_original expected 3, 4, or 5 args, got {len(args)}")
+
+    ext = (ext or "").lstrip(".").lower() or "bin"
     source_slug = normalize_source(credit)
     pres_slug = president_from_voyage_slug(vslug)
     return f"media/{pres_slug}/{source_slug}/{vslug}/{mtype}/{mslug}.{ext}"
 
-def _s3_key_for_derivative(vslug: str, mslug: str, mtype: str, credit: str, kind: str) -> str:
+
+
+def _s3_key_for_derivative(*args) -> str:
+    """
+    Backward-compatible:
+      New: (vslug, mslug, ext, credit, kind)
+      Old: (vslug, mslug, mtype, credit, kind)  # will just treat mtype as folder
+    """
+    if len(args) == 5:
+        vslug, mslug, ext_or_mtype, credit, kind = args
+    else:
+        raise TypeError(f"_s3_key_for_derivative expected 5 args, got {len(args)}")
+
     source_slug = normalize_source(credit)
     pres_slug = president_from_voyage_slug(vslug)
-    return f"media/{pres_slug}/{source_slug}/{vslug}/{mtype}/{mslug}_{kind}.jpg"
+    folder = (ext_or_mtype or "bin").lower()
+    return f"media/{pres_slug}/{source_slug}/{vslug}/{folder}/{mslug}_{kind}.jpg"
+
+
 
 def _upload_bytes(bucket: str, key: str, data: bytes, content_type: Optional[str] = None) -> None:
     extra = {}
@@ -230,6 +261,7 @@ def process_all_media(media_items: List[Dict], voyage_slug: str, spreadsheet_id:
       - If an existing media row with the same link exists and the expected new S3 path differs,
         MOVE it (copy to new key, then delete old). Derivatives are copied if present.
       - Else download (Drive/Dropbox), upload original; if image: generate preview + thumb.
+
     Returns:
       s3_links: { media_slug: (s3_private_url, public_derivative_preview_url|None) }
       warnings: [ ... ]
@@ -251,30 +283,25 @@ def process_all_media(media_items: List[Dict], voyage_slug: str, spreadsheet_id:
         link_lc = link.lower()
         existing = link_map.get(link_lc)
 
-        # Try a rename/move first if same link already exists in Sheets
+        # rename/move if same link already exists
         if existing and existing.get("s3_url"):
             try:
                 old_s3 = existing["s3_url"]
                 if old_s3.startswith("s3://"):
-                    _, rest = old_s3[5:].split("/", 1)
-                    old_bucket, old_key = old_s3[5:].split("/", 1)[0], old_s3[5:].split("/", 1)[1]
+                    old_bucket = old_s3[5:].split("/", 1)[0]
+                    old_key = old_s3[5:].split("/", 1)[1]
                 else:
-                    # Unexpected form; skip rename
                     old_bucket, old_key = S3_PRIVATE_BUCKET, ""
-
-                # Derive old ext, mtype
                 old_ext = os.path.splitext(old_key)[1].lstrip(".") if old_key else None
                 mtype_current = (m.get("media_type") or existing.get("media_type") or "other").strip().lower()
                 ext_for_new = old_ext or "bin"
 
                 new_orig_key = _s3_key_for_original(voyage_slug, mslug, mtype_current, ext_for_new, credit)
                 if old_key and new_orig_key != old_key:
-                    # Copy original
                     _copy_object(old_bucket, old_key, S3_PRIVATE_BUCKET, new_orig_key)
-                    # Delete old original per requirement (same link, renamed)
                     _delete_object(old_bucket, old_key)
 
-                    # Try to copy derivatives if they exist
+                    # derivatives
                     pres_old = president_from_voyage_slug(existing.get("voyage_slug") or voyage_slug)
                     source_old = normalize_source(existing.get("credit") or credit)
                     mtype_old = (existing.get("media_type") or mtype_current or "other")
@@ -296,17 +323,17 @@ def process_all_media(media_items: List[Dict], voyage_slug: str, spreadsheet_id:
 
                     s3_links[mslug] = (_s3_url(S3_PRIVATE_BUCKET, new_orig_key), _public_http_url(S3_PUBLIC_BUCKET, new_prev))
                     LOG.info("Renamed media for same link -> %s", new_orig_key)
-                    continue  # handled by move, no download needed
+                    continue
             except Exception as e:
                 warnings.append(f"{mslug}: failed to move existing S3 object for same link: {e}")
 
-        # Otherwise, download and upload as usual
+        # Otherwise, download/upload
         blob = None
         mime = None
         ext_hint = None
 
-        if "/file/d/" in link:  # Google Drive
-            file_id = _parse_drive_file_id(link)
+        if "/file/d/" in link:
+            file_id = re.search(r"/file/d/([A-Za-z0-9_\-]+)/", link).group(1) if "/file/d/" in link else None
             if not file_id:
                 warnings.append(f"{mslug}: invalid Google Drive link (no /file/d/<ID>/)")
                 s3_links[mslug] = (None, None)
@@ -329,10 +356,7 @@ def process_all_media(media_items: List[Dict], voyage_slug: str, spreadsheet_id:
             s3_links[mslug] = (None, None)
             continue
 
-        # Detect type / ext
-        mtype = (m.get("media_type") or "").strip().lower()
-        if not mtype:
-            mtype = detect_media_type(mime, filename_hint=title)
+        mtype = (m.get("media_type") or "").strip().lower() or detect_media_type(mime, filename_hint=title)
         ext = guess_extension(mime, filename_hint=("." + ext_hint) if ext_hint else title)
 
         # Upload original

@@ -26,9 +26,12 @@ from googleapiclient.errors import HttpError
 
 LOG = logging.getLogger("voyage_ingest.sheets_updater")
 
+TITLE = os.environ.get("PRESIDENTS_SHEET_TITLE", "presidents").strip() or "presidents"
+
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
-_RATE_LIMIT_SECONDS = float(os.getenv("SHEETS_RATE_LIMIT_SECONDS", "0.0"))
+# Gentle client-side throttle between calls (seconds)
+_RATE_LIMIT_SECONDS = float(os.getenv("SHEETS_RATE_LIMIT_SECONDS", "0.5"))
 
 # ---------- Sheet schema (headers) ----------
 INGEST_LOG_TITLE = "ingest_log"
@@ -59,11 +62,18 @@ VOYAGE_PASSENGERS_HEADERS = ["voyage_slug","person_slug","capacity_role","notes"
 VOYAGE_MEDIA_HEADERS      = ["voyage_slug","media_slug","sort_order","notes"]
 VOYAGE_PRESIDENTS_HEADERS = ["voyage_slug","president_slug","notes"]
 
+PRESIDENTS_HEADERS = ["president_slug", "full_name", "party", "term_start", "term_end", "wikipedia_url", "tags"]
+
+
 PRESIDENT_SLUG_COL_CANDIDATES = ["president_slug","person_slug","slug"]
 
 _svc_spreadsheets = None
 _svc_values = None
 _last_call_ts = 0.0
+
+# In-process caches to avoid extra reads
+_SPREADSHEET_META_CACHE: Dict[str, dict] = {}       # spreadsheet_id -> metadata
+_HEADERS_CACHE: Dict[Tuple[str,str], List[str]] = {}  # (sheet_id, title) -> headers
 
 def _sheets_service():
     global _svc_spreadsheets, _svc_values
@@ -73,7 +83,7 @@ def _sheets_service():
     if not creds_path:
         raise RuntimeError("GOOGLE_APPLICATION_CREDENTIALS not set")
     creds = service_account.Credentials.from_service_account_file(creds_path, scopes=SCOPES)
-    root = build("sheets", "v4", credentials=creds)
+    root = build("sheets", "v4", credentials=creds, cache_discovery=False)
     _svc_spreadsheets = root.spreadsheets()
     _svc_values = _svc_spreadsheets.values()
     return _svc_spreadsheets, _svc_values
@@ -86,7 +96,7 @@ def _rate_limit():
     if wait > 0: time.sleep(wait)
     _last_call_ts = time.time()
 
-def _execute_with_backoff(req, *, max_attempts: int = 10, base: float = 0.5, jitter: float = 0.25):
+def _execute_with_backoff(req, *, max_attempts: int = 12, base: float = 0.8, jitter: float = 0.5):
     attempt = 0
     while True:
         try:
@@ -96,15 +106,19 @@ def _execute_with_backoff(req, *, max_attempts: int = 10, base: float = 0.5, jit
             status = getattr(e, "status_code", None)
             if status is None and hasattr(e, "resp"):
                 status = getattr(e.resp, "status", None)
+            # retry on common quota / transient errors
             if status in (429,500,502,503,504):
                 attempt += 1
-                if attempt >= max_attempts: raise
+                if attempt >= max_attempts:
+                    raise
                 retry_after = None
                 if hasattr(e, "resp") and e.resp is not None:
-                    retry_after = e.resp.get("retry-after") or e.resp.get("Retry-After")
+                    retry_after = e.resp.headers.get("Retry-After") if hasattr(e.resp, "headers") else None
                 if retry_after:
-                    try: sleep_s = float(retry_after)
-                    except Exception: sleep_s = base * (2 ** (attempt - 1)) + random.uniform(0, jitter)
+                    try:
+                        sleep_s = float(retry_after)
+                    except Exception:
+                        sleep_s = base * (2 ** (attempt - 1)) + random.uniform(0, jitter)
                 else:
                     sleep_s = base * (2 ** (attempt - 1)) + random.uniform(0, jitter)
                 LOG.warning("Sheets API %s. Backoff %.2fs (attempt %d/%d).", status, sleep_s, attempt, max_attempts)
@@ -175,10 +189,14 @@ INDEX_CACHE = IndexCache()
 
 # --------- Utilities ----------
 
-def _get_sheet_metadata(sid: str):
+def _get_spreadsheet_metadata(sid: str) -> dict:
+    if sid in _SPREADSHEET_META_CACHE:
+        return _SPREADSHEET_META_CACHE[sid]
     spreadsheets, _ = _sheets_service()
     req = spreadsheets.get(spreadsheetId=sid, includeGridData=False)
-    return _execute_with_backoff(req)
+    meta = _execute_with_backoff(req)
+    _SPREADSHEET_META_CACHE[sid] = meta
+    return meta
 
 def _find_sheet_id_by_title(meta: dict, title: str) -> Optional[int]:
     for s in meta.get("sheets", []):
@@ -195,7 +213,7 @@ def _col_letter(n: int) -> str:
 
 def _ensure_tabs(sid: str, title_to_headers: Dict[str, List[str]]) -> None:
     spreadsheets, values = _sheets_service()
-    meta = _get_sheet_metadata(sid)
+    meta = _get_spreadsheet_metadata(sid)
     existing_titles = {s["properties"]["title"] for s in meta.get("sheets", [])}
     create_reqs = []
     for title in title_to_headers:
@@ -204,15 +222,22 @@ def _ensure_tabs(sid: str, title_to_headers: Dict[str, List[str]]) -> None:
     if create_reqs:
         req = spreadsheets.batchUpdate(spreadsheetId=sid, body={"requests": create_reqs})
         _execute_with_backoff(req)
+        # refresh local metadata cache once after creation
+        _SPREADSHEET_META_CACHE.pop(sid, None)
+        meta = _get_spreadsheet_metadata(sid)
+
+    # Batch read headers for all tabs we care about in one go
+    ranges = [f"{title}!1:1" for title in title_to_headers.keys()]
+    req = values.batchGet(spreadsheetId=sid, ranges=ranges)
+    resp = _execute_with_backoff(req)
+    by_title = {rng["range"].split("!")[0]: (rng.get("values", [[]])[0] if rng.get("values") else []) for rng in resp.get("valueRanges", [])}
+
     data_updates = []
     updated_titles = []
     for title, headers in title_to_headers.items():
+        current = by_title.get(title, [])
         cached = HEADERS_CACHE.get(sid, title)
-        if cached is None:
-            rng = f"{title}!1:1"
-            resp = _execute_with_backoff(values.get(spreadsheetId=sid, range=rng))
-            current = resp.get("values", [[]])[0] if resp.get("values") else []
-        else:
+        if cached is not None:
             current = cached
         if current != headers:
             data_updates.append({
@@ -221,6 +246,7 @@ def _ensure_tabs(sid: str, title_to_headers: Dict[str, List[str]]) -> None:
                 "values": [headers],
             })
             updated_titles.append(title)
+
     if data_updates:
         req = values.batchUpdate(spreadsheetId=sid, body={
             "valueInputOption":"RAW","data":data_updates,"includeValuesInResponse":True,
@@ -282,6 +308,39 @@ def append_ingest_log(spreadsheet_id: str, rows: List[List[str]]) -> None:
         valueInputOption="RAW", insertDataOption="INSERT_ROWS", body={"values": rows}
     ))
 
+def reset_presidents_sheet(spreadsheet_id: str, presidents: List[Dict[str, str]]) -> None:
+    """
+    Replace the entire presidents sheet with the provided presidents list.
+    """
+    
+    _ensure_tab(spreadsheet_id, TITLE, PRESIDENTS_HEADERS)
+    spreadsheets, values = _sheets_service()
+    # Clear existing contents
+    _execute_with_backoff(values.clear(
+        spreadsheetId=spreadsheet_id, range=f"{TITLE}!A:ZZ"
+    ))
+    # Re-write headers
+    _execute_with_backoff(values.update(
+        spreadsheetId=spreadsheet_id,
+        range=f"{TITLE}!A1:{_col_letter(len(PRESIDENTS_HEADERS))}1",
+        valueInputOption="RAW",
+        body={"values":[PRESIDENTS_HEADERS]},
+    ))
+    # Write rows
+    if presidents:
+        rows = [[p.get(h, "") for h in PRESIDENTS_HEADERS] for p in presidents]
+        _execute_with_backoff(values.append(
+            spreadsheetId=spreadsheet_id,
+            range=f"{TITLE}!A:ZZ",
+            valueInputOption="RAW",
+            insertDataOption="INSERT_ROWS",
+            body={"values": rows},
+        ))
+    # caches
+    HEADERS_CACHE.set(spreadsheet_id, TITLE, PRESIDENTS_HEADERS)
+    INDEX_CACHE.invalidate_headers(spreadsheet_id, TITLE, PRESIDENTS_HEADERS)
+    LOG.info("Presidents sheet reset with %d row(s).", len(presidents))
+
 def update_all(spreadsheet_id: str, voyage_data: Dict, s3_links: Dict[str, Tuple[str, Optional[str]]]) -> None:
     """
     Upsert voyages, passengers, media; then populate join tables.
@@ -326,7 +385,7 @@ def update_all(spreadsheet_id: str, voyage_data: Dict, s3_links: Dict[str, Tuple
 
     _upsert(spreadsheet_id, "voyages", VOYAGES_HEADERS, "voyage_slug", voyage_row)
 
-    # ---- Passengers (unchanged)
+    # ---- Passengers
     for p in passengers:
         row = {
             "person_slug": p.get("slug") or p.get("person_slug", ""),
@@ -359,7 +418,7 @@ def update_all(spreadsheet_id: str, voyage_data: Dict, s3_links: Dict[str, Tuple
             "description_markdown": m.get("description") or m.get("description_markdown", ""),
             "tags": m.get("tags", ""),
             "copyright_restrictions": m.get("copyright_restrictions", ""),
-            "google_drive_link": m.get("google_drive_link", ""),  # may be Dropbox link too
+            "google_drive_link": m.get("google_drive_link", ""),
         }
         if not row["media_slug"]:
             LOG.warning("Skipping media with missing slug: %s", row)
@@ -385,10 +444,11 @@ def update_all(spreadsheet_id: str, voyage_data: Dict, s3_links: Dict[str, Tuple
         jr = {"voyage_slug": vslug, "media_slug": mslug, "sort_order": str(sort_order) if sort_order is not None else "", "notes": ""}
         _upsert(spreadsheet_id, "voyage_media", VOYAGE_MEDIA_HEADERS, "media_slug", jr)
 
-    # ---- Join: voyage_presidents (use president_slug from voyage)
+    # ---- Join: voyage_presidents
     pres_slug = (voyage.get("president_slug") or "").strip()
     if pres_slug:
         jr = {"voyage_slug": vslug, "president_slug": pres_slug, "notes": ""}
         _upsert(spreadsheet_id, "voyage_presidents", VOYAGE_PRESIDENTS_HEADERS, "president_slug", jr)
 
     LOG.info("Sheets updated for voyage '%s'", vslug)
+

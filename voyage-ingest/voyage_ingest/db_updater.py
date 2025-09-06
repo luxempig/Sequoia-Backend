@@ -3,7 +3,7 @@ import re
 import time
 import random
 import logging
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, List, Any
 
 from psycopg2.extras import execute_values
 from google.oauth2 import service_account
@@ -110,33 +110,49 @@ def _conn():
         password=os.environ["DB_PASSWORD"],
     )
 
-def _upsert_presidents(cur) -> int:
-    spreadsheet_id = os.environ.get("SPREADSHEET_ID", "").strip()
-    if not spreadsheet_id:
-        LOG.warning("SPREADSHEET_ID not set; skipping presidents upsert.")
-        return 0
-    if spreadsheet_id in _PRES_UPSERTED:
-        return 0
-    title = os.environ.get("PRESIDENTS_SHEET_TITLE", "presidents").strip() or "presidents"
+def _arrayify_urls(val: Any) -> Optional[List[str]]:
+    """
+    Convert a single string (possibly multiline or comma/space-separated)
+    into a list of URLs for insertion into a Postgres text[] column.
+    If already a list/tuple, normalize to list[str].
+    """
+    if val is None:
+        return None
+    if isinstance(val, (list, tuple)):
+        out = [str(x).strip() for x in val if str(x).strip()]
+        return out or None
+    s = str(val).strip()
+    if not s:
+        return None
+    # Accept common separators: newlines, commas, whitespace
+    parts = re.split(r"[,\s]+", s)
+    urls = [p for p in parts if p]
+    return urls or None
+
+def _extract_pres_rows_from_sheet(spreadsheet_id: str, title: str) -> List[tuple]:
     rows = _read_sheet(spreadsheet_id, title)
     if not rows:
-        LOG.warning("Presidents sheet '%s' is empty; skipping presidents upsert.", title)
-        return 0
+        LOG.warning("Presidents sheet '%s' is empty.", title)
+        return []
     header = [(h or "").strip().lower() for h in rows[0]]
     def _hidx(name: str) -> Optional[int]:
         try: return header.index(name)
         except ValueError: return None
     col_ix = {name: _hidx(name) for name in
               ["president_slug","full_name","party","term_start","term_end","wikipedia_url","tags"]}
-    if col_ix["president_slug"] is None or col_ix["full_name"] is None:
-        LOG.error("Presidents sheet must include 'president_slug' and 'full_name' headers. Found: %s", header)
-        return 0
+    missing = [k for k,v in col_ix.items() if v is None]
+    if ("president_slug" in missing) or ("full_name" in missing):
+        raise RuntimeError(
+            f"Presidents sheet must include 'president_slug' and 'full_name' headers. Found: {header}"
+        )
+
     def cell(r, i): return r[i] if (i is not None and i < len(r)) else ""
-    to_upsert = []
+    to_rows: List[tuple] = []
     for idx_row, r in enumerate(rows[1:], start=2):
         pres_slug = _ns(cell(r, col_ix["president_slug"]))
         full_name = _ns(cell(r, col_ix["full_name"]))
-        if not pres_slug and not full_name: continue
+        if not pres_slug and not full_name: 
+            continue
         if not pres_slug or not full_name:
             LOG.warning("Skipping presidents row %d: missing required fields (slug=%r, name=%r)", idx_row, pres_slug, full_name)
             continue
@@ -145,7 +161,59 @@ def _upsert_presidents(cur) -> int:
         term_end      = _nd(cell(r, col_ix["term_end"]))
         wikipedia_url = _ns(cell(r, col_ix["wikipedia_url"]))
         tags          = _ns(cell(r, col_ix["tags"]))
-        to_upsert.append((pres_slug, full_name, party, term_start, term_end, wikipedia_url, tags))
+        to_rows.append((pres_slug, full_name, party, term_start, term_end, wikipedia_url, tags))
+    return to_rows
+
+def reset_presidents_table(spreadsheet_id: Optional[str] = None, sheet_title: Optional[str] = None) -> int:
+    """
+    Hard reset the presidents table to EXACTLY match the presidents sheet.
+    - TRUNCATE presidents
+    - INSERT all rows from the sheet
+    Returns number of inserted rows.
+    """
+    spreadsheet_id = (spreadsheet_id or os.environ.get("SPREADSHEET_ID", "")).strip()
+    if not spreadsheet_id:
+        raise RuntimeError("reset_presidents_table: SPREADSHEET_ID not set and not provided")
+
+    title = (sheet_title or os.environ.get("PRESIDENTS_SHEET_TITLE", "presidents")).strip() or "presidents"
+    rows = _extract_pres_rows_from_sheet(spreadsheet_id, title)
+
+    import psycopg2
+    conn = _conn()
+    conn.autocommit = False
+    inserted = 0
+    try:
+        with conn.cursor() as cur:
+            _schema(cur)
+            cur.execute("TRUNCATE TABLE presidents;")
+            if rows:
+                execute_values(cur, """
+                    INSERT INTO presidents (president_slug, full_name, party, term_start, term_end, wikipedia_url, tags)
+                    VALUES %s
+                """, rows)
+                inserted = len(rows)
+        conn.commit()
+        LOG.info("reset_presidents_table: inserted %d row(s) from sheet '%s'", inserted, title)
+    except Exception as e:
+        conn.rollback()
+        LOG.error("reset_presidents_table failed: %s", e)
+        raise
+    finally:
+        conn.close()
+    # Reset caches so later reads reflect the reset
+    global _PRES_UPSERTED
+    _PRES_UPSERTED.discard(spreadsheet_id)
+    return inserted
+
+def _upsert_presidents(cur) -> int:
+    spreadsheet_id = os.environ.get("SPREADSHEET_ID", "").strip()
+    if not spreadsheet_id:
+        LOG.warning("SPREADSHEET_ID not set; skipping presidents upsert.")
+        return 0
+    if spreadsheet_id in _PRES_UPSERTED:
+        return 0
+    title = os.environ.get("PRESIDENTS_SHEET_TITLE", "presidents").strip() or "presidents"
+    to_upsert = _extract_pres_rows_from_sheet(spreadsheet_id, title)
     if not to_upsert:
         _PRES_UPSERTED.add(spreadsheet_id)
         return 0
@@ -192,6 +260,8 @@ def upsert_all(bundle: Dict, s3_links: Dict[str, Tuple[Optional[str], Optional[s
                 if not re.match(r"^\d{2}:\d{2}(:\d{2})?$", s): raise ValueError(f"Bad time (HH:MM[:SS]): {s}")
                 return s
 
+            source_urls_list = _arrayify_urls(v.get("source_urls") or v.get("sources"))
+
             v_norm = {
                 "voyage_slug": _ns(v.get("voyage_slug")),
                 "title": _ns(v.get("title")),
@@ -204,11 +274,10 @@ def upsert_all(bundle: Dict, s3_links: Dict[str, Tuple[Optional[str], Optional[s
                 "vessel_name": _ns(v.get("vessel_name")),
                 "voyage_type": _ns(v.get("voyage_type")),
                 "summary_markdown": _ns(v.get("summary_markdown") or v.get("summary")),
-                "source_urls": _ns(v.get("source_urls")),
+                "source_urls": source_urls_list,  # list -> text[]
                 "tags": _ns(v.get("tags")),
             }
 
-            # Voyages (now with start_time, end_time)
             cur.execute("""
                 INSERT INTO voyages (
                     voyage_slug, title, start_date, end_date, start_time, end_time,
@@ -233,7 +302,6 @@ def upsert_all(bundle: Dict, s3_links: Dict[str, Tuple[Optional[str], Optional[s
                     tags = EXCLUDED.tags;
             """, v_norm)
 
-            # People
             if ppl:
                 people_rows = []
                 for p in ppl:
@@ -262,7 +330,6 @@ def upsert_all(bundle: Dict, s3_links: Dict[str, Tuple[Optional[str], Optional[s
                         tags = EXCLUDED.tags;
                 """, people_rows)
 
-            # Media
             if med:
                 media_rows = []
                 for m in med:
@@ -297,7 +364,6 @@ def upsert_all(bundle: Dict, s3_links: Dict[str, Tuple[Optional[str], Optional[s
                         google_drive_link = EXCLUDED.google_drive_link;
                 """, media_rows)
 
-            # voyage_passengers
             if ppl:
                 vp_rows = []
                 for p in ppl:
@@ -310,7 +376,6 @@ def upsert_all(bundle: Dict, s3_links: Dict[str, Tuple[Optional[str], Optional[s
                         notes = EXCLUDED.notes;
                 """, vp_rows)
 
-            # voyage_media
             if med:
                 vm_rows = []
                 for m in med:
@@ -336,3 +401,112 @@ def upsert_all(bundle: Dict, s3_links: Dict[str, Tuple[Optional[str], Optional[s
         raise
     finally:
         conn.close()
+
+# ... [imports & helpers unchanged above] ...
+
+def reset_presidents_table_from_list(presidents: list[dict]) -> None:
+    """
+    Safe reset: upsert all provided presidents, then delete only those not referenced by voyages.
+    Avoids TRUNCATE and avoids deleting any president currently referenced by voyages.
+    """
+    import psycopg2
+    from psycopg2.extras import execute_values
+
+    conn = _conn()
+    conn.autocommit = False
+    try:
+        with conn.cursor() as cur:
+            _schema(cur)
+
+            # 1) Upsert all incoming presidents
+            rows = []
+            for p in presidents or []:
+                rows.append((
+                    (p.get("president_slug") or "").strip(),
+                    (p.get("full_name") or "").strip(),
+                    (p.get("party") or "").strip() or None,
+                    _nd(p.get("term_start")),
+                    _nd(p.get("term_end")),
+                    (p.get("wikipedia_url") or "").strip() or None,
+                    (p.get("tags") or "").strip() or None,
+                ))
+            if rows:
+                execute_values(cur, """
+                    INSERT INTO presidents
+                      (president_slug, full_name, party, term_start, term_end, wikipedia_url, tags)
+                    VALUES %s
+                    ON CONFLICT (president_slug) DO UPDATE SET
+                      full_name     = EXCLUDED.full_name,
+                      party         = EXCLUDED.party,
+                      term_start    = EXCLUDED.term_start,
+                      term_end      = EXCLUDED.term_end,
+                      wikipedia_url = EXCLUDED.wikipedia_url,
+                      tags          = EXCLUDED.tags;
+                """, rows)
+
+            # 2) Prune presidents that are NOT referenced by any voyage AND not present in incoming list
+            incoming_slugs = tuple(sorted({r[0] for r in rows}))  # may be empty
+            if incoming_slugs:
+                cur.execute("""
+                    DELETE FROM presidents p
+                    WHERE p.president_slug NOT IN %s
+                      AND NOT EXISTS (
+                          SELECT 1
+                          FROM voyages v
+                          WHERE v.president_slug_from_voyage = p.president_slug
+                      );
+                """, (incoming_slugs,))
+            else:
+                # If nothing incoming, only remove completely unreferenced presidents
+                cur.execute("""
+                    DELETE FROM presidents p
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM voyages v
+                        WHERE v.president_slug_from_voyage = p.president_slug
+                    );
+                """)
+
+        conn.commit()
+        LOG.info("Presidents table safely reset (upserted %d, pruned unreferenced).", len(presidents or []))
+    except Exception as e:
+        conn.rollback()
+        LOG.error("Failed to reset presidents table safely: %s", e)
+        raise
+    finally:
+        conn.close()
+
+
+
+def reset_presidents_table(spreadsheet_id: Optional[str] = None, sheet_title: Optional[str] = None) -> int:
+    """
+    Alternative: Hard reset the presidents table by pulling from the presidents sheet.
+    """
+    spreadsheet_id = (spreadsheet_id or os.environ.get("SPREADSHEET_ID", "")).strip()
+    if not spreadsheet_id:
+        raise RuntimeError("reset_presidents_table: SPREADSHEET_ID not set and not provided")
+    title = (sheet_title or os.environ.get("PRESIDENTS_SHEET_TITLE", "presidents")).strip() or "presidents"
+    rows = _extract_pres_rows_from_sheet(spreadsheet_id, title)
+    import psycopg2
+    conn = _conn()
+    conn.autocommit = False
+    inserted = 0
+    try:
+        with conn.cursor() as cur:
+            _schema(cur)
+            cur.execute("TRUNCATE TABLE presidents;")
+            if rows:
+                execute_values(cur, """
+                    INSERT INTO presidents (president_slug, full_name, party, term_start, term_end, wikipedia_url, tags)
+                    VALUES %s
+                """, rows)
+                inserted = len(rows)
+        conn.commit()
+        LOG.info("reset_presidents_table: inserted %d row(s) from sheet '%s'", inserted, title)
+    except Exception as e:
+        conn.rollback()
+        LOG.error("reset_presidents_table failed: %s", e)
+        raise
+    finally:
+        conn.close()
+    return inserted
+

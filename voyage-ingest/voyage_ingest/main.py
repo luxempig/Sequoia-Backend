@@ -6,8 +6,9 @@ Env (required):
   SPREADSHEET_ID
 
 Behavior:
-- If DRY_RUN=false: enforce Sheets + DB to match the master Doc exactly (prune extras),
-  while S3 is additive (no mass deletes). S3 objects are only removed when the SAME
+- Fully reset presidents in Sheets + DB from the Doc's PRESIDENT headers.
+- Enforce Sheets + DB to match the master Doc exactly for voyages (prune extras).
+- S3 is additive (no global mass deletes). S3 objects are only removed when the SAME
   media link is being renamed/moved to a new required path.
 """
 
@@ -15,6 +16,7 @@ import os
 import logging
 from datetime import datetime
 from dotenv import load_dotenv
+import time
 
 from voyage_ingest import (
     parser,
@@ -28,6 +30,7 @@ from voyage_ingest import (
 LOG = logging.getLogger("voyage_ingest")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
+
 def _classify_status(validation_errors, media_errors):
     if validation_errors:
         return "ERROR"
@@ -35,10 +38,12 @@ def _classify_status(validation_errors, media_errors):
         return "WITH_WARNINGS"
     return "OK"
 
+
 def _as_bool(s: str, default=False) -> bool:
     if s is None:
         return default
     return s.strip().lower() in {"1", "true", "yes", "y", "on"}
+
 
 def main():
     load_dotenv()
@@ -53,10 +58,25 @@ def main():
 
     LOG.info("=== Voyage Ingest ===  DRY_RUN=%s", dry_run)
 
-    # ---------------- Parse the Google Doc into voyage bundles ----------------
-    bundles = parser.parse_doc_multi(doc_id)
+    # ---------------- Parse the Google Doc into presidents + voyage bundles ----------------
+    presidents, bundles = parser.parse_doc_multi(doc_id)
     if not bundles:
         LOG.error("No voyages found in the document.")
+        return
+
+    # ---------------- Reset presidents in Sheets + DB ----------------
+    try:
+        presidents, bundles = parser.parse_doc_multi(doc_id)
+
+        # then, if you reset presidents from the doc:
+        sheets_updater.reset_presidents_sheet(spreadsheet_id, presidents)
+        db_updater.reset_presidents_table_from_list(presidents)
+
+        # ...then continue processing bundles as you already do
+
+        LOG.info("Presidents fully reset in Sheets and DB (%d rows).", len(presidents))
+    except Exception as e:
+        LOG.error("Failed to reset presidents in Sheets/DB: %s", e)
         return
 
     # ---------------- Global exactness: remove voyages missing from Doc (Sheets/DB only) ----------------
@@ -71,7 +91,6 @@ def main():
     }
     desired_slugs = {s for s in desired_slugs if s}
 
-    global_prune_stats = None
     # When not in dry-run, ensure exact match for Sheets/DB (no S3 global prune)
     global_prune_stats = reconciler.prune_voyages_missing_from_doc_with_set(
         desired_voyage_slugs=desired_slugs,
@@ -82,11 +101,17 @@ def main():
     )
     LOG.info("Global reconcile of missing voyages (Sheets/DB only): %s", global_prune_stats)
 
+    BUNDLE_PAUSE_S = float(os.getenv("SHEETS_BUNDLE_PAUSE_SECONDS", "0.0"))
+
+
     # ---------------- Per-voyage processing ----------------
     for idx, bundle in enumerate(bundles, start=1):
+        if idx > 1 and BUNDLE_PAUSE_S > 0:
+            time.sleep(BUNDLE_PAUSE_S)
         v = bundle.get("voyage") or {}
         vslug = (v.get("voyage_slug") or "").strip()
         LOG.info("--- Processing voyage %d/%d: %s ---", idx, len(bundles), vslug or "<no-slug>")
+            
 
         # 1) Validate structured bundle
         errs = validator.validate_bundle(bundle)
@@ -98,9 +123,9 @@ def main():
                 ts, doc_id, vslug or f"[bundle#{idx}]",
                 "ERROR", str(len(errs)), "0",
                 str(len(bundle.get("media", []) or [])),
-                "0","0",
-                "exact","TRUE" if dry_run else "FALSE",
-                "0","0","0","0","0","0","0","0",
+                "0", "0",
+                "exact", "TRUE" if dry_run else "FALSE",
+                "0", "0", "0", "0", "0", "0", "0", "0",
                 errs[0][:250] if errs else "",
             ])
             continue
@@ -116,8 +141,6 @@ def main():
         sheets_updater.update_all(spreadsheet_id, bundle, s3_links)
 
         # 4) Per-voyage prune of joins (Sheets/DB) AFTER upserts to ensure exact match with Doc
-        sheets_deleted_vm = sheets_deleted_vp = 0
-        db_deleted_vm = db_deleted_vp = db_deleted_media = db_deleted_people = 0
         sheet_stats = reconciler.diff_and_prune_sheets(bundle, dry_run=dry_run)
         sheets_deleted_vm = sheet_stats.get("deleted_voyage_media", 0)
         sheets_deleted_vp = sheet_stats.get("deleted_voyage_passengers", 0)
@@ -149,7 +172,7 @@ def main():
             str(media_uploaded),
             str(thumbs_uploaded),
             "exact", "TRUE" if dry_run else "FALSE",
-            "0","0",
+            "0", "0",
             str(sheets_deleted_vm), str(sheets_deleted_vp),
             str(db_deleted_vm), str(db_deleted_vp),
             str(db_deleted_media), str(db_deleted_people),
@@ -161,9 +184,9 @@ def main():
         log_rows.append([
             ts, doc_id, "[GLOBAL]",
             "OK",
-            "0","0","0","0","0",
-            "exact","TRUE" if dry_run else "FALSE",
-            "0","0",
+            "0", "0", "0", "0", "0",
+            "exact", "TRUE" if dry_run else "FALSE",
+            "0", "0",
             str(global_prune_stats.get("sheets_deleted_rows", 0)),
             "0",
             str(global_prune_stats.get("db_deleted_vm", 0)),
@@ -185,6 +208,7 @@ def main():
         LOG.warning("Completed with %d error(s). See logs above.", total_errors)
     else:
         LOG.info("Completed successfully: %d voyage(s) processed.", len(bundles))
+
 
 if __name__ == "__main__":
     main()

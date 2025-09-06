@@ -1,13 +1,9 @@
 import boto3
 from botocore.exceptions import ClientError
 
-# Replace with your bucket name
 BUCKET = "your-bucket-name"
-
-# Key (path) in S3
 KEY = "media/test-upload.txt"
 
-# Local file to upload (we’ll just create one)
 with open("test-upload.txt", "w") as f:
     f.write("Hello from EC2 at S3 test!\n")
 

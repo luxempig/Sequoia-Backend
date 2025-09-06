@@ -516,3 +516,40 @@ def prune_voyages_missing_from_doc_with_set(
                         stats["s3_deleted"] += 1 if deleted else 0
 
     return stats
+
+# ... existing imports and constants ...
+
+_SHEETS_SVC = None
+_SPREADSHEET_META_CACHE: Dict[str, dict] = {}
+
+def _sheets_service():
+    global _SHEETS_SVC
+    if _SHEETS_SVC is not None:
+        return _SHEETS_SVC
+    if not GOOGLE_CREDS_PATH or not os.path.exists(GOOGLE_CREDS_PATH):
+        raise RuntimeError("GOOGLE_APPLICATION_CREDENTIALS must be set for reconciler Sheets access")
+    creds = service_account.Credentials.from_service_account_file(
+        GOOGLE_CREDS_PATH, scopes=["https://www.googleapis.com/auth/spreadsheets"]
+    )
+    _SHEETS_SVC = build("sheets", "v4", credentials=creds, cache_discovery=False)
+    return _SHEETS_SVC
+
+def _get_spreadsheet_meta(spreadsheet_id: str) -> dict:
+    if spreadsheet_id in _SPREADSHEET_META_CACHE:
+        return _SPREADSHEET_META_CACHE[spreadsheet_id]
+    svc = _sheets_service()
+    meta = svc.spreadsheets().get(spreadsheetId=spreadsheet_id, includeGridData=False).execute()
+    _SPREADSHEET_META_CACHE[spreadsheet_id] = meta
+    return meta
+
+def _get_sheet_id(spreadsheet_id: str, fallback_title: str, env_key: Optional[str] = None) -> Tuple[Optional[int], str]:
+    svc = _sheets_service()
+    meta = _get_spreadsheet_meta(spreadsheet_id)
+    title = (os.environ.get(env_key, "") if env_key else "").strip() or fallback_title
+    sid = _sheet_id_by_title_fuzzy(meta, title)
+    if sid is None and env_key:
+        sid = _sheet_id_by_title_fuzzy(meta, fallback_title)
+        if sid:
+            title = fallback_title
+    return sid, title
+
