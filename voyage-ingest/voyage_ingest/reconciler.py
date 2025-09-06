@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import os
-import re
 import logging
 from typing import Dict, List, Tuple, Optional, Set
 
@@ -10,29 +9,27 @@ import boto3
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
-# If you're using psycopg2-binary==2.9.10 (as discussed)
 import psycopg2
 
-from voyage_ingest.slugger import normalize_source
-from voyage_ingest.slugger import president_from_voyage_slug
+from voyage_ingest.slugger import normalize_source, president_from_voyage_slug
 
 LOG = logging.getLogger("voyage_ingest.reconciler")
 
 # ---------------- Env ----------------
 
-AWS_REGION         = os.environ.get("AWS_REGION", "us-east-2")
+AWS_REGION         = os.environ.get("AWS_REGION", "us-east-1")
 S3_PRIVATE_BUCKET  = os.environ.get("S3_PRIVATE_BUCKET", "sequoia-canonical")
 S3_PUBLIC_BUCKET   = os.environ.get("S3_PUBLIC_BUCKET",  "sequoia-public")
 S3_TRASH_BUCKET    = os.environ.get("S3_TRASH_BUCKET",   "")  # optional: archive-then-delete
 GOOGLE_CREDS_PATH  = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "").strip()
 
-VOYAGES_TITLE_ENV          = "VOYAGES_SHEET_TITLE"
-VOYAGE_MEDIA_TITLE_ENV     = "VOYAGE_MEDIA_SHEET_TITLE"
-VOYAGE_PASSENGERS_TITLE_ENV= "VOYAGE_PASSENGERS_SHEET_TITLE"
+VOYAGES_TITLE_ENV           = "VOYAGES_SHEET_TITLE"
+VOYAGE_MEDIA_TITLE_ENV      = "VOYAGE_MEDIA_SHEET_TITLE"
+VOYAGE_PASSENGERS_TITLE_ENV = "VOYAGE_PASSENGERS_SHEET_TITLE"
 
-DEFAULT_VOYAGES_TITLE          = "voyages"
-DEFAULT_VOYAGE_MEDIA_TITLE     = "voyage_media"
-DEFAULT_VOYAGE_PASSENGERS_TITLE= "voyage_passengers"
+DEFAULT_VOYAGES_TITLE           = "voyages"
+DEFAULT_VOYAGE_MEDIA_TITLE      = "voyage_media"
+DEFAULT_VOYAGE_PASSENGERS_TITLE = "voyage_passengers"
 
 # ---------------- Google Sheets service ----------------
 
@@ -47,7 +44,7 @@ def _sheets_service():
     creds = service_account.Credentials.from_service_account_file(
         GOOGLE_CREDS_PATH, scopes=["https://www.googleapis.com/auth/spreadsheets"]
     )
-    _SHEETS_SVC = build("sheets", "v4", credentials=creds)
+    _SHEETS_SVC = build("sheets", "v4", credentials=creds, cache_discovery=False)
     return _SHEETS_SVC
 
 def _normalized(s: str) -> str:
@@ -67,7 +64,6 @@ def _get_sheet_id(spreadsheet_id: str, fallback_title: str, env_key: Optional[st
     title = (os.environ.get(env_key, "") if env_key else "").strip() or fallback_title
     sid = _sheet_id_by_title_fuzzy(meta, title)
     if sid is None and env_key:
-        # try fallback explicitly
         sid = _sheet_id_by_title_fuzzy(meta, fallback_title)
         if sid:
             title = fallback_title
@@ -104,7 +100,6 @@ def _delete_sheet_rows_by_voyage(spreadsheet_id: str, fallback_title: str, vslug
     to_delete = [i for i, row in enumerate(vals[1:], start=1) if i_vslug < len(row) and row[i_vslug].strip() == vslug]
     if not to_delete:
         return 0
-    # Build batch delete requests (delete bottom-up)
     requests = [{
         "deleteDimension": {
             "range": {"sheetId": sid, "dimension": "ROWS", "startIndex": r, "endIndex": r + 1}
@@ -113,7 +108,7 @@ def _delete_sheet_rows_by_voyage(spreadsheet_id: str, fallback_title: str, vslug
     svc.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body={"requests": requests}).execute()
     return len(to_delete)
 
-# ---------------- S3 helpers ----------------
+# ---------------- S3 helpers (best-effort, optional) ----------------
 
 def _s3():
     return boto3.client("s3", region_name=AWS_REGION)
@@ -163,83 +158,34 @@ def _copy_then_delete(bucket: str, key: str) -> Tuple[bool, bool]:
     return archived, deleted
 
 def _is_protected(key: str) -> bool:
-    # Only operate within media/ prefix
+    # keep a hard guard: only touch the media/ subtree
     return not key.startswith("media/")
 
-# ---------------- Expected-key logic (president + source + voyage) ----------------
-
-def _expected_keys_for_media(vslug: str, m: dict, public: bool) -> List[str]:
-    """
-    Build expected keys for a single media item based on:
-      president_slug (from voyage), source_slug (from credit), voyage_slug, media_type, media_slug
-    For private originals, extension varies: we return a prefix "<slug>." to match.
-    """
-    mslug = (m.get("slug") or "").strip()
-    mtype = ((m.get("media_type") or "").strip().lower() or "other")
-    credit = (m.get("credit") or "").strip()
-    source_slug = (m.get("source_slug") or normalize_source(credit))
-    pres_slug = president_from_voyage_slug(vslug)
-    base = f"media/{pres_slug}/{source_slug}/{vslug}/{mtype}/"
-
-    if public:
-        return [f"{base}{mslug}_preview.jpg", f"{base}{mslug}_thumb.jpg"]
-    else:
-        # match any original extension
-        return [f"{base}{mslug}."]
-
-# ---------------- Per-voyage S3 prune ----------------
-
-def diff_and_prune_s3(voyage_slug: str, desired_media: List[dict], dry_run: bool = False) -> Dict[str, int]:
-    """
-    Compare S3 contents for this voyage to desired media and remove unexpected objects.
-    Works across both buckets with the new path layout: media/<pres>/<source>/<voyage>/<type>/...
-    """
+# NOTE: The ingest now names objects under:
+#   media/<president>/<source>/<voyage>/<variant...>
+# where "variant..." can be:
+#   - legacy: <type>/<slug>.<ext>, <slug>_preview.jpg, <slug>_thumb.jpg
+#   - extension folder: <ext>/<slug>.<ext>, <slug>_preview.jpg, <slug>_thumb.jpg
+# We make S3 prune best-effort by filtering keys that contain "/<voyage_slug>/" (covers all variants).
+def diff_and_prune_s3(voyage_slug: str, dry_run: bool = False) -> Dict[str, int]:
     stats = {"s3_deleted": 0, "s3_archived": 0}
-
-    # Build expected sets
-    expected_priv_prefixes: Set[str] = set()  # "<path>/<slug>."
-    expected_pub_keys: Set[str] = set()
-
-    for m in desired_media or []:
-        for pref in _expected_keys_for_media(voyage_slug, m, public=False):
-            expected_priv_prefixes.add(pref)
-        for k in _expected_keys_for_media(voyage_slug, m, public=True):
-            expected_pub_keys.add(k)
-
-    # Helper to check if a key is expected private original
-    def _is_expected_private(key: str) -> bool:
-        for pref in expected_priv_prefixes:
-            if key.startswith(pref):
-                return True
-        return False
-
-    # We don't know all sources in advance, so list everything under president and filter voyage slug
     pres = president_from_voyage_slug(voyage_slug)
-    prefixes_to_scan = [f"media/{pres}/"]  # scan subtree, then filter by /<voyage_slug>/
+    if not pres or pres == "unknown-president":
+        LOG.warning("S3 prune skipped: could not derive president from voyage_slug=%r", voyage_slug)
+        return stats
 
-    for bucket, is_public in ((S3_PRIVATE_BUCKET, False), (S3_PUBLIC_BUCKET, True)):
-        for prefix in prefixes_to_scan:
-            keys = _list_all_keys(bucket, prefix)
-            # keep only keys for this voyage
-            keys = [k for k in keys if f"/{voyage_slug}/" in k]
-            for key in keys:
-                if _is_protected(key):
-                    continue
-                keep = False
-                if is_public:
-                    if key in expected_pub_keys:
-                        keep = True
-                else:
-                    if _is_expected_private(key):
-                        keep = True
-                if not keep:
-                    if dry_run:
-                        LOG.info("[DRY_RUN] Would remove s3://%s/%s", bucket, key)
-                    else:
-                        archived, deleted = _copy_then_delete(bucket, key)
-                        stats["s3_archived"] += 1 if archived else 0
-                        stats["s3_deleted"] += 1 if deleted else 0
-
+    for bucket in (S3_PUBLIC_BUCKET, S3_PRIVATE_BUCKET):
+        keys = _list_all_keys(bucket, f"media/{pres}/")
+        keys = [k for k in keys if f"/{voyage_slug}/" in k]
+        for key in keys:
+            if _is_protected(key):
+                continue
+            if dry_run:
+                LOG.info("[DRY_RUN] Would delete s3://%s/%s", bucket, key)
+            else:
+                archived, deleted = _copy_then_delete(bucket, key)
+                stats["s3_archived"] += 1 if archived else 0
+                stats["s3_deleted"] += 1 if deleted else 0
     return stats
 
 # ---------------- Per-voyage Sheets prune ----------------
@@ -272,7 +218,6 @@ def diff_and_prune_sheets(bundle: Dict, dry_run: bool = False) -> Dict[str, int]
         except ValueError:
             i_vslug = i_mslug = -1
         if i_vslug >= 0 and i_mslug >= 0:
-            # compute rows to delete
             to_del: List[int] = []
             for i, row in enumerate(vm_rows[1:], start=1):
                 if i_vslug < len(row) and row[i_vslug].strip() == vslug:
@@ -323,7 +268,7 @@ def diff_and_prune_sheets(bundle: Dict, dry_run: bool = False) -> Dict[str, int]
 
     return {"deleted_voyage_media": deleted_vm, "deleted_voyage_passengers": deleted_vp}
 
-# ---------------- DB prune (per-voyage) ----------------
+# ---------------- DB helpers/prune (per-voyage) ----------------
 
 def _db_conn():
     return psycopg2.connect(
@@ -433,13 +378,13 @@ def prune_voyages_missing_from_doc_with_set(
     dry_run: bool = False,
     prune_db: bool = True,
     prune_sheets: bool = True,
-    prune_s3: bool = True,
+    prune_s3: bool = False,   # keep S3 additive globally unless explicitly requested
 ) -> dict:
     """
     Remove voyages that exist in Sheets/DB/S3 but are NOT present in the Doc.
     - Sheets: delete rows from voyages, voyage_media, voyage_passengers for those slugs
     - DB:     delete rows from voyages, voyage_media, voyage_passengers
-    - S3:     delete all keys under media/<president>/<any-source>/<voyage_slug>/...
+    - S3:     delete all keys under media/<president>/**/<voyage_slug>/** (best-effort)
     """
     stats = {
         "missing_count": 0,
@@ -497,11 +442,10 @@ def prune_voyages_missing_from_doc_with_set(
         finally:
             conn.close()
 
-    # ---- S3 prune (entire voyage across all sources under the president)
+    # ---- S3 prune (entire voyage across all sources under the president; best-effort)
     if prune_s3:
         for vslug in missing:
             pres = president_from_voyage_slug(vslug)
-            # List all under president and filter by /<voyage_slug>/ to catch all sources/types
             for bucket in (S3_PUBLIC_BUCKET, S3_PRIVATE_BUCKET):
                 keys = _list_all_keys(bucket, f"media/{pres}/")
                 keys = [k for k in keys if f"/{vslug}/" in k]
@@ -516,40 +460,3 @@ def prune_voyages_missing_from_doc_with_set(
                         stats["s3_deleted"] += 1 if deleted else 0
 
     return stats
-
-# ... existing imports and constants ...
-
-_SHEETS_SVC = None
-_SPREADSHEET_META_CACHE: Dict[str, dict] = {}
-
-def _sheets_service():
-    global _SHEETS_SVC
-    if _SHEETS_SVC is not None:
-        return _SHEETS_SVC
-    if not GOOGLE_CREDS_PATH or not os.path.exists(GOOGLE_CREDS_PATH):
-        raise RuntimeError("GOOGLE_APPLICATION_CREDENTIALS must be set for reconciler Sheets access")
-    creds = service_account.Credentials.from_service_account_file(
-        GOOGLE_CREDS_PATH, scopes=["https://www.googleapis.com/auth/spreadsheets"]
-    )
-    _SHEETS_SVC = build("sheets", "v4", credentials=creds, cache_discovery=False)
-    return _SHEETS_SVC
-
-def _get_spreadsheet_meta(spreadsheet_id: str) -> dict:
-    if spreadsheet_id in _SPREADSHEET_META_CACHE:
-        return _SPREADSHEET_META_CACHE[spreadsheet_id]
-    svc = _sheets_service()
-    meta = svc.spreadsheets().get(spreadsheetId=spreadsheet_id, includeGridData=False).execute()
-    _SPREADSHEET_META_CACHE[spreadsheet_id] = meta
-    return meta
-
-def _get_sheet_id(spreadsheet_id: str, fallback_title: str, env_key: Optional[str] = None) -> Tuple[Optional[int], str]:
-    svc = _sheets_service()
-    meta = _get_spreadsheet_meta(spreadsheet_id)
-    title = (os.environ.get(env_key, "") if env_key else "").strip() or fallback_title
-    sid = _sheet_id_by_title_fuzzy(meta, title)
-    if sid is None and env_key:
-        sid = _sheet_id_by_title_fuzzy(meta, fallback_title)
-        if sid:
-            title = fallback_title
-    return sid, title
-

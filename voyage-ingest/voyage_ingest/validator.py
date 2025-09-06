@@ -1,4 +1,3 @@
-# FILE: voyage-ingest/voyage_ingest/validator.py
 from __future__ import annotations
 
 import os
@@ -13,15 +12,16 @@ from voyage_ingest.slugger import slugify
 
 LOG = logging.getLogger("voyage_ingest.validator")
 
-# Keep time strict (if provided), but treat all *dates* as free text
+# Accept YYYY or YYYY-MM or YYYY-MM-DD
+DATE_RE_FLEX = re.compile(r"^\d{4}(-\d{2}(-\d{2})?)?$")
 TIME_RE = re.compile(r"^\d{2}:\d{2}(:\d{2})?$")  # HH:MM or HH:MM:SS
 
-# person/president slugs look like lastname-firstname[-suffix]
 PERSON_SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)+(?:-[a-z0-9]+)?$")
+MEDIA_SLUG_RE_TMPL = r"^{date}-[a-z0-9-]+-{vslug}-\d{{2}}$"
 
 VALID_VOYAGE_TYPES = {"official", "private", "maintenance", "other"}
 
-# ---------------- Google Sheets helpers (presidents) ----------------
+# --------- Presidents sheet helpers ---------
 
 _SHEETS_SVC = None
 _PRESIDENT_SLUG_CACHE: Optional[Set[str]] = None
@@ -35,10 +35,9 @@ def _sheets_service():
     if not creds_path or not os.path.exists(creds_path):
         raise RuntimeError("GOOGLE_APPLICATION_CREDENTIALS not set or invalid path for validator")
     creds = service_account.Credentials.from_service_account_file(
-        creds_path,
-        scopes=["https://www.googleapis.com/auth/spreadsheets.readonly"],
+        creds_path, scopes=["https://www.googleapis.com/auth/spreadsheets.readonly"]
     )
-    _SHEETS_SVC = build("sheets", "v4", credentials=creds)
+    _SHEETS_SVC = build("sheets", "v4", credentials=creds, cache_discovery=False)
     return _SHEETS_SVC
 
 def _read_president_slugs() -> Set[str]:
@@ -112,11 +111,16 @@ def _read_pres_fullname_to_slug() -> Dict[str, str]:
         _PRES_FULL_TO_SLUG = {}
         return _PRES_FULL_TO_SLUG
 
-# ---------------- Basic field validators ----------------
+# --------- Field validators ---------
 
 def _req(d: Dict, key: str, path: str, errs: List[str]):
     if not (d.get(key) or "").strip():
         errs.append(f"[{path}] missing required field: {key}")
+
+def _date_flex(d: Dict, key: str, path: str, errs: List[str]):
+    v = (d.get(key) or "").strip()
+    if v and not DATE_RE_FLEX.match(v):
+        errs.append(f"[{path}] invalid date for {key}: {v} (YYYY or YYYY-MM or YYYY-MM-DD)")
 
 def _time_opt(d: Dict, key: str, path: str, errs: List[str]):
     v = (d.get(key) or "").strip()
@@ -132,85 +136,74 @@ def _is_supported_media_link(s: str) -> bool:
     s = (s or "").lower()
     return ("/file/d/" in s) or ("dropbox.com" in s)
 
-# ---------------- Main bundle validation ----------------
+# --------- Bundle validator ---------
 
 def validate_bundle(bundle: Dict) -> List[str]:
     """
-    Validates voyage + passengers + media.
+    Validate voyage + passengers + media.
 
-    Dates are treated as free text:
-      - No YYYY-MM-DD enforcement
-      - Media slugs only need to contain voyage_slug and end with -NN
-
-    We still ensure a president is provided and voyage_slug begins with the
-    provided start_date + president slug if both exist.
+    Notes:
+    - Parser supplies president & president_slug (from the last ## President header).
+    - voyage_slug is always parser-generated; we validate structure/prefix only.
+    - Media 'title' is OPTIONAL.
+    - Dates accept YYYY / YYYY-MM / YYYY-MM-DD.
     """
     errs: List[str] = []
     v = bundle.get("voyage") or {}
     ppl = bundle.get("passengers") or []
     med = bundle.get("media") or []
 
-    # ---- voyage fields
+    # Voyage fields
     _req(v, "voyage_slug", "voyage", errs)
     _req(v, "title", "voyage", errs)
-    _req(v, "start_date", "voyage", errs)   # still required, but not validated for format
-    _req(v, "president", "voyage", errs)
+    _req(v, "start_date", "voyage", errs)
 
+    _date_flex(v, "start_date", "voyage", errs)
+    if v.get("end_date"):
+        _date_flex(v, "end_date", "voyage", errs)
     _time_opt(v, "start_time", "voyage", errs)
     _time_opt(v, "end_time", "voyage", errs)
-
     if v.get("voyage_type"):
         _enum(v, "voyage_type", VALID_VOYAGE_TYPES, "voyage", errs)
 
-    # Loosened voyage_slug checks: if we can compute president slug, ensure prefix matches;
-    # otherwise only ensure it contains something non-empty.
-    vslug = (v.get("voyage_slug") or "").strip().lower()
-    if vslug:
-        pres_full = (v.get("president") or "").strip().lower()
-        full_to_slug = _read_pres_fullname_to_slug()
-        expected_pres_slug = (v.get("president_slug") or "").strip().lower() or full_to_slug.get(pres_full, slugify(pres_full) if pres_full else "")
-        sd = (v.get("start_date") or "").strip()
-        if expected_pres_slug and sd:
-            expected_prefix = f"{sd}-{expected_pres_slug}-"
-            if not vslug.startswith(expected_prefix):
-                errs.append(f"[voyage] voyage_slug should start with '{expected_prefix}'")
+    # voyage_slug sanity (prefix check)
+    vslug = (v.get("voyage_slug") or "").strip()
+    sd = (v.get("start_date") or "").strip()
+    pres_full = (v.get("president") or "").strip().lower()
+    full_to_slug = _read_pres_fullname_to_slug()
+    expected_pres_slug = (v.get("president_slug") or "").strip().lower() or full_to_slug.get(pres_full, slugify(pres_full) if pres_full else "")
+    if sd and expected_pres_slug:
+        expected_prefix = f"{sd}-{expected_pres_slug}-"
+        if not vslug.startswith(expected_prefix):
+            errs.append(f"[voyage] voyage_slug should start with '{expected_prefix}' (got '{vslug}')")
 
-        allowed_presidents = _read_president_slugs()
-        if allowed_presidents and expected_pres_slug and expected_pres_slug not in allowed_presidents:
-            LOG.warning("[voyage] president '%s' not found in presidents sheet yet; will be populated during reset.", expected_pres_slug)
-
-    # ---- passengers
+    # Passengers
     for i, p in enumerate(ppl, start=1):
         path = f"passengers #{i}"
-        if (p.get("slug") or p.get("person_slug")):
-            ps = (p.get("slug") or p.get("person_slug") or "").strip()
-            if ps and not PERSON_SLUG_RE.match(ps):
-                errs.append(f"[{path}] invalid person slug: {ps}")
+        ps = (p.get("slug") or p.get("person_slug") or "").strip()
+        if ps and not PERSON_SLUG_RE.match(ps):
+            errs.append(f"[{path}] invalid person slug: {ps}")
         for field in ("birth_year", "death_year"):
             val = (p.get(field) or "").strip()
             if val and not val.isdigit():
-                errs.append(f"[{path}] {field} must be an integer if provided")
+                errs.append(f"[{path}] {field} must be integer if provided")
 
-    # ---- media (link must be Drive or Dropbox; title now optional)
+    # Media (title optional; must have credit + date + link)
     for i, m in enumerate(med, start=1):
         path = f"media #{i}"
-        # Required keys (title is optional now)
         for k in ("credit", "date", "google_drive_link"):
             if not (m.get(k) or "").strip():
                 errs.append(f"[{path}] missing required field: {k}")
-
+        if (m.get("date") or "").strip() and not DATE_RE_FLEX.match(m.get("date")):
+            errs.append(f"[{path}] invalid date for date: {m.get('date')} (YYYY / YYYY-MM / YYYY-MM-DD)")
         link = (m.get("google_drive_link") or "").strip()
         if link and not _is_supported_media_link(link):
             errs.append(f"[{path}] media link must be a Google Drive '/file/d/<ID>/...' or a Dropbox shared link")
 
-        # Loosened slug validation:
-        #  - must contain the voyage_slug
-        #  - must end with -NN
-        mslug = (m.get("slug") or "").strip().lower()
-        if mslug and vslug:
-            ends_ok = bool(re.search(r"-\d{2}$", mslug))
-            contains_v = vslug in mslug
-            if not (ends_ok and contains_v):
-                errs.append(f"[{path}] media slug must contain voyage slug and end with -NN (got '{mslug}')")
+        mslug = (m.get("slug") or "").strip()
+        if mslug and vslug and (m.get("date") or "").strip():
+            tmpl = MEDIA_SLUG_RE_TMPL.format(date=re.escape((m.get("date") or "").strip()), vslug=re.escape(vslug))
+            if not re.match(tmpl, mslug):
+                errs.append(f"[{path}] media slug '{mslug}' does not match '<date>-<source>-{vslug}-NN'")
 
     return errs

@@ -1,25 +1,23 @@
 """
 Sequoia Voyage Ingest Package
 
-This package ingests a structured Google Doc per voyage and updates:
-- S3 (originals + previews/thumbnails)
-- Google Sheets (voyages, passengers, media, join tables, presidents)
-- Postgres (full reset then insert fresh)
+Entry points:
+- voyage_ingest.main: end-to-end ingest (Doc -> Sheets/DB/S3)
 
 Modules:
-- main.py           : entry point (FULL RESET of Sheets & DB each run)
-- parser.py         : parse Google Doc -> presidents + structured voyage bundle(s)
-- validator.py      : validate slugs, dates, links
-- drive_sync.py     : download from Drive/Dropbox, upload to S3 (no global deletes)
-- sheets_updater.py : reset presidents, upsert rows
-- db_updater.py     : reset tables and upsert rows
-- reconciler.py     : unused by default (kept for reference)
+- main.py           : Orchestrates everything
+- parser.py         : Parse the Google Doc into bundles (President inheritance)
+- validator.py      : Validate bundles (lenient media date)
+- drive_sync.py     : Download (Drive/Dropbox), upload to S3, preview/thumb for images
+- sheets_updater.py : Exact-update Google Sheets tabs
+- db_updater.py     : Reset & upsert Postgres tables
+- slugger.py        : Slugify helpers
+- reconciler.py     : (Optional) prune extras to exactly match Doc (Sheets/DB)
 - utils.py          : shared helpers
 """
 
 __version__ = "0.2.0"
-__author__ = "Daniel Freymann"
+__author__ = "Sequoia Ingest Team"
 
-from .main import main
 
 __all__ = ["main"]

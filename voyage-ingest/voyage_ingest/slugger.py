@@ -1,26 +1,10 @@
-# FILE: voyage-ingest/voyage_ingest/slugger.py
 from __future__ import annotations
 import os
 import re
-from typing import Dict
+from typing import Dict, Iterable, List, Tuple, Set
 
 _slug_re = re.compile(r"[^a-z0-9]+")
-# lenient tokenizer for the "date" piece used in media slugs
-def _tokenize_date(s: str) -> str:
-    """
-    Convert any free-text date into a safe token for slugs.
-    Examples:
-      ""            -> "undated"
-      "1933"        -> "1933"
-      "1933-04-23"  -> "1933-04-23"
-      "April 1933"  -> "april-1933"
-      "about 1933?" -> "about-1933"
-    """
-    s = (s or "").strip().lower()
-    if not s:
-        return "undated"
-    s = _slug_re.sub("-", s).strip("-")
-    return s or "undated"
+_DATE_PREFIX = re.compile(r"^(\d{4})(?:-(\d{2})-(\d{2}))?$")
 
 def slugify(text: str) -> str:
     s = (text or "").lower()
@@ -40,31 +24,14 @@ def normalize_source(credit: str) -> str:
         "natl-archives": "national-archives",
         "cbs-news": "cbs-news",
         "new-york-times": "new-york-times",
+        "sequoia-logbook-p": "sequoia-logbook",  # common cleanup when pX becomes part of slug
     }
+    # also fold "sequoia-logbook-p5" => "sequoia-logbook"
+    if s.startswith("sequoia-logbook-p"):
+        return "sequoia-logbook"
     return aliases.get(s, s)
 
-def generate_media_slugs(items: list[dict], voyage_slug: str) -> None:
-    """
-    In-place: for each media dict, fill m['slug'] if absent using:
-      <date_token>-<source_slug>-<voyage_slug>-NN
-
-    - date_token is a *lenient* token from any free-text date (or 'undated' if empty).
-    - Ensures NN is sequential per (date_token, source_slug, voyage_slug) within this run.
-    """
-    counters: Dict[tuple[str, str, str], int] = {}
-    for m in items or []:
-        if m.get("slug"):
-            continue  # keep existing
-        date_token = _tokenize_date(m.get("date") or "")
-        src = normalize_source(m.get("credit") or "")
-        key = (date_token, src, voyage_slug)
-        counters[key] = counters.get(key, 0) + 1
-        nn = f"{counters[key]:02d}"
-        m["source_slug"] = src
-        m["slug"] = f"{date_token}-{src}-{voyage_slug}-{nn}"
-
-# --- utils: president extraction remains the same but robust to longer president slugs
-def _read_president_slugs_from_env_sheet() -> set[str]:
+def _read_president_slugs_from_env_sheet() -> Set[str]:
     try:
         from google.oauth2 import service_account
         from googleapiclient.discovery import build
@@ -94,7 +61,7 @@ def _read_president_slugs_from_env_sheet() -> set[str]:
     if "president_slug" not in header:
         return set()
     i_slug = header.index("president_slug")
-    out = set()
+    out: Set[str] = set()
     for row in values[1:]:
         if i_slug < len(row):
             s = (row[i_slug] or "").strip().lower()
@@ -102,17 +69,36 @@ def _read_president_slugs_from_env_sheet() -> set[str]:
                 out.add(s)
     return out
 
-def president_from_voyage_slug(voyage_slug: str) -> str:
-    """
-    Extract the president slug from 'YYYY-MM-DD-<president_slug>-<descriptor...>'.
-    If presidents sheet is available, match the longest known slug following the date-.
-    Otherwise, fall back to taking the token immediately after the date-.
-    """
-    s = (voyage_slug or "").strip().lower()
-    if len(s) < 12 or s[4] != "-" or s[7] != "-" or s[10] != "-":
-        return "unknown-president"
+def generate_voyage_slug(start_date: str, president_slug: str, title: str) -> str:
+    first5 = "-".join(slugify(title).split("-")[:5]) or "voyage"
+    return f"{start_date}-{slugify(president_slug)}-{first5}"
 
-    # after 'YYYY-MM-DD-'
+def generate_media_slugs(items: List[dict], voyage_slug: str) -> None:
+    """
+    For each media dict, fill m['slug'] if missing:
+      <date-or-year>-<source_slug>-<voyage_slug>-NN
+    'date' may be 'YYYY' or 'YYYY-MM-DD'. Slugging is lenient.
+    """
+    counters: Dict[Tuple[str, str, str], int] = {}
+    for m in items:
+        if m.get("slug"):
+            continue
+        date = (m.get("date") or "").strip()
+        credit = (m.get("credit") or "").strip()
+        src = normalize_source(credit) or "unknown-source"
+        # No date? use 'unknown' (try to avoid, but supported)
+        dkey = date if date else "unknown"
+        key = (dkey, src, voyage_slug)
+        counters[key] = counters.get(key, 0) + 1
+        nn = f"{counters[key]:02d}"
+        m["source_slug"] = src
+        m["slug"] = f"{dkey}-{src}-{voyage_slug}-{nn}"
+
+# Parse the president slug segment from voyage_slug
+def president_from_voyage_slug(voyage_slug: str) -> str:
+    s = (voyage_slug or "").strip().lower()
+    if not s or len(s) < 12 or s[4] != "-" or s[7] != "-" or s[10] != "-":
+        return "unknown-president"
     rest = s[11:]
     known = _read_president_slugs_from_env_sheet()
     if known:
@@ -123,5 +109,5 @@ def president_from_voyage_slug(voyage_slug: str) -> str:
                     best = pres
         if best:
             return best
-    # fallback: take first token
-    return rest.split("-", 1)[0] if "-" in rest else (rest or "unknown-president")
+    # fallback: first token
+    return rest.split("-", 1)[0] if "-" in rest else rest or "unknown-president"
